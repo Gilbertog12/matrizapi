@@ -1,10 +1,11 @@
 #Ignorar los LOGS
-LOGS/*
+/LOGS
+/MatrizRiesgos/LOG_API
 
 #Ignorar los ejecutables
-MatrizRiesgos/bin/*
+/MatrizRiesgos/bin
 
 #Ignorar los obj
-MatrizRiesgos/obj/*
+/MatrizRiesgos/obj
 
 
