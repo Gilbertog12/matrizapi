@@ -1,4 +1,4 @@
-Ôªøusing System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -15,21 +15,30 @@ using System.Web;
 using log4net;
 using Newtonsoft.Json;
 /* Historia
- * 2021-12-23 v2.03 Intento unificaci√≥n de este componente entre Matriz de Riesgo y Matriz API
+ * 2021-12-24 v2.04 Definir mensajes para RETRY - ver Rintentar(ex.Message)
+ *                  E3 = Error no reintentable
+ *                  EX = Error reintentable
+ *                  OR = Reintento exitoso
+ *                  ER = Reintento fallido
+ *                  Futuro: reintentar errores Groovy
+ *                          retornar flag "Fatal":true 
+ *                          ... requiere modificar MatrizRiesgos.Common.cs (httpResponse<R>)
+ *                          DespuÈs de re-intentar errores retornar cÛdigo "Fatal" en vez de "Success"
+ * 2021-12-23 v2.03 Intento unificaciÛn de este componente entre Matriz de Riesgo y Matriz API
  *                  Ampliar a 600 caracteres para alojar completos los mensajes RITUS mas largos
- *                  Ver un "OJO" en el cambio de TLS1.2 que est√° en MatrizAPI y no estaba en MatrisRSK
- * 2021-12-03 v2.02 Eliminar pad del distrito/posici√≥n, alargar allAtributes para que quepa Read_Consecuencia
+ *                  Ver un "OJO" en el cambio de TLS1.2 que est· en MatrizAPI y no estaba en MatrisRSK
+ * 2021-12-03 v2.02 Eliminar pad del distrito/posiciÛn, alargar allAtributes para que quepa Read_Consecuencia
  * 2021-12-02 v2.01 Truncar mensaje SendGeneric en logs, modifica el DateTime.Now.ToString(formatDate) + ";" + por  spanMS + ";" +:
  * 2021-12-02 v2.0- Mejoras en logs:
  *            Agregar version en /api/values, quitar ruta Ellipse
  *            Medir tiempo de /api/values/authenticate - GetForAuthenticate
  *                            /api/values/districts - GetForDistricts
  *                            /api/values/positions - GetForPositions
- *                            /api/values/generic - mover info despu√©s de sendGeneric
+ *                            /api/values/generic - mover info despuÈs de sendGeneric
  *                            /api/values/genericSimple - simplificar info's
  * 2021-12-01 Upgrade a TLS 1.2
  * 2021-11-28 Si falla el generic, intentar una (1) vez genericRetry
- * 2021-11-27 Reordenar INFO para facilitar an√°lisis del log
+ * 2021-11-27 Reordenar INFO para facilitar an·lisis del log
  *            Generar errores aleatorios (50%) para probar "Retry Angular" temporal - ojo
  */
 
@@ -37,7 +46,7 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.03";
+        readonly string versionAPI = "v2.04";
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
         //formatDate
@@ -46,7 +55,7 @@ namespace MatrizRiesgos.Controllers
         [Route("api/values")]
         public IEnumerable<string> Get()
         {
-            return new string[] { WebConfigurationManager.AppSettings["EllService"], "App Matriz API Versi√≥n " + versionAPI + " ... hora del servidor : " + DateTime.Now.ToString() };
+            return new string[] { WebConfigurationManager.AppSettings["EllService"], "App Matriz API VersiÛn " + versionAPI + " ... hora del servidor : " + DateTime.Now.ToString() };
         }
 
         [Authorize]
@@ -214,7 +223,7 @@ namespace MatrizRiesgos.Controllers
         [Route("api/values/forall")]
         public Util.HttpResponse<string> GetF()
         {
-            return new Util.HttpResponse<string>() { data = "", message = "App Matriz de riesgos Versi√≥n " + versionAPI + " ... hora del servidor : " + DateTime.Now.ToString(), redirect = false, success = true };
+            return new Util.HttpResponse<string>() { data = "", message = "App Matriz de riesgos VersiÛn " + versionAPI + " ... hora del servidor : " + DateTime.Now.ToString(), redirect = false, success = true };
         }
 
         [AllowAnonymous]
@@ -511,42 +520,53 @@ namespace MatrizRiesgos.Controllers
             {
                 TimeSpan span = DateTime.Now - intialDate;
                 long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";generic;E3;" +
+                bool reintentar = Rintentar(ex.Message);
+                string codigoError = "E3";
+                if (reintentar) codigoError = "EX";
+                Info(intialDate.ToString(formatDate) + ";generic;" + codigoError + ";" +
                     spanMS + ";" +
                     credentials.username + ";" +
                     opSheet.district + ";" +
                     opSheet.position + ";" +
                     ex.Message + ";\n" + ex.StackTrace);
-
-                intialDate = DateTime.Now;
-                try
+                if (reintentar)
                 {
-                    result = sendGeneric(opSheet, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
-                    if (allAttributes.Length > 600)
+                    intialDate = DateTime.Now;
+                    try
                     {
-                        allAttributes = allAttributes.Substring(0, 600);
+                        result = sendGeneric(opSheet, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
+                        if (allAttributes.Length > 600)
+                        {
+                            allAttributes = allAttributes.Substring(0, 600);
+                        }
+                        span = DateTime.Now - intialDate;
+                        spanMS = (long)span.TotalMilliseconds;
+                        Info(intialDate.ToString(formatDate) + ";genericRetry;OR;" +
+                            spanMS + ";" +
+                            credentials.username + ";" +
+                            opSheet.district + ";" +
+                            opSheet.position + ";" +
+                            allAttributes + ";" + ex.Message);
                     }
-                    span = DateTime.Now - intialDate;
-                    spanMS = (long)span.TotalMilliseconds;
-                    Info(intialDate.ToString(formatDate) + ";genericRetry;OR;" +
-                        spanMS + ";" +
-                        credentials.username + ";" +
-                        opSheet.district + ";" +
-                        opSheet.position + ";" +
-                        allAttributes + ";" + ex.Message);
-                }
-                catch (Exception ex2)
-                {
-                    span = DateTime.Now - intialDate;
-                    spanMS = (long)span.TotalMilliseconds;
-                    Info(intialDate.ToString(formatDate) + ";genericRetry;ER;" +
-                        spanMS + ";" +
-                        credentials.username + ";" +
-                        opSheet.district + ";" +
-                        opSheet.position + ";" +
-                        allAttributes + ";" + ex2.Message + "\n" + ex2.StackTrace);
+                    catch (Exception ex2)
+                    {
+                        span = DateTime.Now - intialDate;
+                        spanMS = (long)span.TotalMilliseconds;
+                        Info(intialDate.ToString(formatDate) + ";genericRetry;ER;" +
+                            spanMS + ";" +
+                            credentials.username + ";" +
+                            opSheet.district + ";" +
+                            opSheet.position + ";" +
+                            allAttributes + ";" + ex2.Message + "\n" + ex2.StackTrace);
 
-                    result.message = ex2.Message;
+                        result.message = ex2.Message;
+                        result.data = new List<Util.EllRow>();
+                        result.success = false;
+                    }
+                }
+                else
+                {
+                    result.message = ex.Message;
                     result.data = new List<Util.EllRow>();
                     result.success = false;
                 }
@@ -556,6 +576,39 @@ namespace MatrizRiesgos.Controllers
             return result;
         }
 
+        private bool Rintentar(String mensaje)
+        {
+            bool ok = false;
+            mensaje = mensaje.ToUpper();
+            //nested exception is javax.transaction.RollbackException: ARJUNA016053: Could not commit transaction.
+            //an unexpected exception prevented the connection from being created.please refer to server logs for details.
+            //EMPLOYEE NOT AN INCUMBENT OF THIS POSITION
+            //JTA transaction unexpectedly rolled back(maybe due to a timeout)
+            //The operation has timed out
+            //The remote name could not be resolved: 'prd-p02-col.ellipsehosting.com'
+            //The request failed with HTTP status 502: Proxy Error.
+            //The underlying connection was closed: An unexpected error occurred on a receive.
+            if ((mensaje.IndexOf("NOT AN INCUMBENT") > 0) ||
+                (mensaje.IndexOf("COULD NOT BE RESOLVED") > 0) ||
+                (mensaje.IndexOf("ROLLBACKEXCEPTION") > 0) ||
+                (mensaje.IndexOf("UNEXPECTED EXCEPTION") > 0) ||
+                (mensaje.IndexOf("UNEXPECTEDLY ROLLED BACK") > 0) ||
+                (mensaje.IndexOf("FAILED WITH HTTP STATUS") > 0) ||
+                (mensaje.IndexOf("CONNECTION WAS CLOSED") > 0) ||
+                (mensaje.IndexOf("UNDERLYING CONNECTION") > 0) ||
+                (mensaje.IndexOf("TIMED OUT") > 0) )
+            {
+                ok = true;
+            }
+            // FUTURO:
+            // Object reference not set to an instance of an object.
+            // Operacion no valida
+            // Unable to execute script
+            //  (mensaje.IndexOf("OBJECT REFERENCE NOT SET") > 0) ||
+            //  (mensaje.IndexOf("OPERACION NO VALIDA") > 0) ||
+            //  (mensaje.IndexOf("UNABLE TO EXECUTE") > 0) ||
+            return ok;
+        }
         public static string GetRequestBody()
         {
             var bodyStream = new StreamReader(HttpContext.Current.Request.InputStream);
