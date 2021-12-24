@@ -1,13 +1,13 @@
 #Ignorar los LOGS
 /LOGS
-/MatrizRiesgos/LOG_API
+/MatrizRiesgos/LOG_API/**
 
 #Ignorar los ejecutables
-/MatrizRiesgos/bin
+/MatrizRiesgos/bin/**
 
 #Ignorar los obj
-/MatrizRiesgos/obj
-/.vs
+/MatrizRiesgos/obj/**
+/.vs/**
 *.dll
 *.pdb
 *.cache
