@@ -1,0 +1,10 @@
+#Ignorar los LOGS
+LOGS/*
+
+#Ignorar los ejecutables
+MatrizRiesgos/bin/*
+
+#Ignorar los obj
+MatrizRiesgos/obj/*
+
+
