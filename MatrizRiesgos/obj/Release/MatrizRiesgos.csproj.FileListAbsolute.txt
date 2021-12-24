@@ -1,0 +1,239 @@
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\ApplicationInsights.config
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\roslyn\csc.exe
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.Build.Tasks.CodeAnalysis.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.CodeAnalysis.CSharp.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.CodeAnalysis.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.CodeAnalysis.VisualBasic.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.CSharp.Core.targets
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.VisualBasic.Core.targets
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\roslyn\System.Collections.Immutable.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\roslyn\System.Reflection.Metadata.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\roslyn\vbc.exe
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\roslyn\VBCSCompiler.exe
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\roslyn\VBCSCompiler.exe.config
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\MatrizRiesgos.dll.config
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\MatrizRiesgos.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\MatrizRiesgos.XmlSerializers.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\MatrizRiesgos.pdb
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\EllipseWebServicesClient.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.Agent.Intercept.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.DependencyCollector.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.PerfCounterCollector.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.ServerTelemetryChannel.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.Web.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.WindowsServer.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.ApplicationInsights.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Cors.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Host.SystemWeb.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Security.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Security.OAuth.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Web.Infrastructure.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Newtonsoft.Json.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Owin.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Net.Http.Formatting.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Cors.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Helpers.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Http.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Http.WebHost.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Mvc.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Razor.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.Deployment.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.Razor.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.DependencyCollector.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.ServerTelemetryChannel.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.Web.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.WindowsServer.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.ApplicationInsights.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Cors.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Host.SystemWeb.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Security.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Security.OAuth.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Razor.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.Deployment.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.Razor.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Helpers.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Mvc.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\Newtonsoft.Json.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Net.Http.Formatting.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Http.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Http.WebHost.xml
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Razor.resources.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Webpages.resources.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Webpages.Deployment.resources.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Webpages.Razor.resources.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Helpers.resources.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Mvc.resources.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\es\System.Net.Http.Formatting.resources.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Http.resources.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Http.WebHost.resources.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\obj\Release\MatrizRiesgos.csprojResolveAssemblyReference.cache
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\obj\Release\MatrizRiesgos.dll
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\obj\Release\MatrizRiesgos.pdb
+C:\Users\FABIO\Documents\Visual Studio 2015\Projects\Token\MatrizRiesgos\MatrizRiesgos\obj\Release\MatrizRiesgos.XmlSerializers.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\ApplicationInsights.config
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\csc.exe
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.Build.Tasks.CodeAnalysis.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.CodeAnalysis.CSharp.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.CodeAnalysis.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.CodeAnalysis.VisualBasic.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.CSharp.Core.targets
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.VisualBasic.Core.targets
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\System.Collections.Immutable.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\System.Reflection.Metadata.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\vbc.exe
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\VBCSCompiler.exe
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\VBCSCompiler.exe.config
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\MatrizRiesgos.dll.config
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\MatrizRiesgos.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\MatrizRiesgos.XmlSerializers.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\MatrizRiesgos.pdb
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\EllipseWebServicesClient.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.Agent.Intercept.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.DependencyCollector.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.PerfCounterCollector.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.ServerTelemetryChannel.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.Web.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.WindowsServer.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.ApplicationInsights.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Cors.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Host.SystemWeb.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Security.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Security.OAuth.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Web.Infrastructure.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Newtonsoft.Json.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Owin.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Net.Http.Formatting.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Cors.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Helpers.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Http.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Http.WebHost.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Mvc.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Razor.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.Deployment.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.Razor.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.DependencyCollector.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.ServerTelemetryChannel.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.Web.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.WindowsServer.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.ApplicationInsights.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Cors.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Host.SystemWeb.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Security.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Security.OAuth.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Razor.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.Deployment.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.Razor.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Helpers.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Mvc.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Newtonsoft.Json.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Net.Http.Formatting.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Http.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Http.WebHost.xml
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Razor.resources.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Webpages.resources.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Webpages.Deployment.resources.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Webpages.Razor.resources.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Helpers.resources.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Mvc.resources.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Net.Http.Formatting.resources.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Http.resources.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Http.WebHost.resources.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\obj\Release\MatrizRiesgos.csprojAssemblyReference.cache
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\obj\Release\MatrizRiesgos.csproj.CopyComplete
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\obj\Release\MatrizRiesgos.dll
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\obj\Release\MatrizRiesgos.pdb
+D:\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\obj\Release\MatrizRiesgos.XmlSerializers.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\ApplicationInsights.config
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\csc.exe
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.Build.Tasks.CodeAnalysis.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.CodeAnalysis.CSharp.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.CodeAnalysis.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.CodeAnalysis.VisualBasic.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.CSharp.Core.targets
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\Microsoft.VisualBasic.Core.targets
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\System.Collections.Immutable.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\System.Reflection.Metadata.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\vbc.exe
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\VBCSCompiler.exe
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\roslyn\VBCSCompiler.exe.config
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\MatrizRiesgos.dll.config
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\MatrizRiesgos.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\MatrizRiesgos.XmlSerializers.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\MatrizRiesgos.pdb
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\EllipseWebServicesClient.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.Agent.Intercept.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.DependencyCollector.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.PerfCounterCollector.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.ServerTelemetryChannel.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.Web.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.WindowsServer.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.ApplicationInsights.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Cors.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Host.SystemWeb.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Security.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Security.OAuth.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Web.Infrastructure.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Newtonsoft.Json.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Owin.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Net.Http.Formatting.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Cors.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Helpers.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Http.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Http.WebHost.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Mvc.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Razor.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.Deployment.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.Razor.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.DependencyCollector.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.ServerTelemetryChannel.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.Web.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.AI.WindowsServer.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.ApplicationInsights.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Cors.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Host.SystemWeb.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Security.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Microsoft.Owin.Security.OAuth.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Razor.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.Deployment.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Webpages.Razor.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Helpers.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Mvc.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\Newtonsoft.Json.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Net.Http.Formatting.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Http.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\System.Web.Http.WebHost.xml
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Razor.resources.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Webpages.resources.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Webpages.Deployment.resources.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Webpages.Razor.resources.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Helpers.resources.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Mvc.resources.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Net.Http.Formatting.resources.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Http.resources.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\es\System.Web.Http.WebHost.resources.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\obj\Release\MatrizRiesgos.csproj.CoreCompileInputs.cache
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\obj\Release\MatrizRiesgos.csproj.CopyComplete
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\obj\Release\MatrizRiesgos.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\obj\Release\MatrizRiesgos.pdb
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\obj\Release\MatrizRiesgos.XmlSerializers.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\obj\Release\MatrizRiesgos.csprojAssemblyReference.cache
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\log4net.dll
+C:\Trabajos\Desarrollos\VS\MatrizRiesgos\MatrizRiesgos\bin\log4net.xml

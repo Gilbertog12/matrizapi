@@ -1,0 +1,6 @@
+﻿2021-10-08 21:12:59,033 > [MatrizRiesgos.Controllers.DataController]{Info} > INFO:: 2021-10-08T21:12:58-05:00 1 2021-10-08T21:12:59-05:00RJAVILA             COLL                ADMELLIPSE          
+2021-10-08 21:12:59,036 > [MatrizRiesgos.Controllers.DataController]{Info} > INFO:: 2021-10-08T21:12:58-05:00 2 2021-10-08T21:12:59-05:00RJAVILA             COLL                ADMELLIPSE          {
+	"scriptName":"coeivt",	
+	"action":"IVT_ESTADO",
+	"ruc":"17133341-5"
+}

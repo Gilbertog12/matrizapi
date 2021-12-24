@@ -1,0 +1,17 @@
+﻿2021-10-08 21:11:12,455 > [MatrizRiesgos.Controllers.DataController]{Info} > INFO:: 2021-10-08T21:11:11-05:00 1 2021-10-08T21:11:12-05:00RJAVILA             COLL                ADMELLIPSE          
+2021-10-08 21:11:12,456 > [MatrizRiesgos.Controllers.DataController]{Info} > INFO:: 2021-10-08T21:11:11-05:00 2 2021-10-08T21:11:12-05:00RJAVILA             COLL                ADMELLIPSE          {
+	"scriptName":"coeivt",	
+	"action":"IVT_ESTADO",
+	"ruc":"17133341-5"
+}
+2021-10-08 21:11:17,261 > [MatrizRiesgos.Controllers.DataController]{Info} > INFO:: 2021-10-08T21:11:15-05:00 2 2021-10-08T21:11:17-05:00RJAVILA             COLL                ADMELLIPSE          sendGeneric
+2021-10-08 21:11:45,336 > [MatrizRiesgos.Controllers.DataController]{Info} > INFO:: 2021-10-08T21:11:11-05:00 E1 2021-10-08T21:11:45-05:00RJAVILA             COLL                ADMELLIPSE          {
+	"scriptName":"coeivt",	
+	"action":"IVT_ESTADO",
+	"ruc":"17133341-5"
+}
+2021-10-08 21:11:45,337 > [MatrizRiesgos.Controllers.DataController]{Info} > INFO:: 2021-10-08T21:11:11-05:00 3 2021-10-08T21:11:45-05:00RJAVILA             COLL                ADMELLIPSE          {
+	"scriptName":"coeivt",	
+	"action":"IVT_ESTADO",
+	"ruc":"17133341-5"
+}
