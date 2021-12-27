@@ -15,6 +15,7 @@ using System.Web;
 using log4net;
 using Newtonsoft.Json;
 /* Historia
+ * 2021-12-24 v2.05 Modificacion de genericSimple en el tipo de parametro de entrada
  * 2021-12-24 v2.04 Definir mensajes para RETRY - ver Rintentar(ex.Message)
  *                  E3 = Error no reintentable
  *                  EX = Error reintentable
@@ -46,7 +47,7 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.04";
+        readonly string versionAPI = "v2.05";
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
         //formatDate
@@ -620,10 +621,10 @@ namespace MatrizRiesgos.Controllers
         [Authorize]
         [HttpPost]
         [Route("api/values/genericSimple")]
-        public JObject genericSimple([FromBody] String value)
+        public JObject genericSimple([FromBody] HttpRequestMessage value2)
         {
             DateTime intialDate = DateTime.Now;
-            value = GetRequestBody();
+            string value = GetRequestBody();
             Credentials credentials = new Credentials();
             var identity = (ClaimsIdentity)User.Identity;
             string allAttributes = "";
@@ -706,7 +707,7 @@ namespace MatrizRiesgos.Controllers
 
             proxySheet.Abort();
             proxySheet.Dispose();
-            return json;
+            return json;//new HttpResponseMessage();
         }
 
         private List<GenericScriptService.Attribute> ConvertParamsToEllipse(JObject json)
