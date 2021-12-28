@@ -1,12 +1,35 @@
-﻿2021-10-08 21:24:28,086 > [MatrizRiesgos.Controllers.DataController]{Info} > INFO:: 2021-10-08T21:24:28-05:00 1 2021-10-08T21:24:28-05:00RJAVILA             COLL                ADMELLIPSE          
-2021-10-08 21:24:28,088 > [MatrizRiesgos.Controllers.DataController]{Info} > INFO:: 2021-10-08T21:24:28-05:00 2 2021-10-08T21:24:28-05:00RJAVILA             COLL                ADMELLIPSE          {
-	"scriptName":"coeivt",	
-	"action":"IVT_ESTADO",
-	"ruc":"17133341-5"
-}
-2021-10-08 21:24:29,386 > [MatrizRiesgos.Controllers.DataController]{Info} > INFO:: 2021-10-08T21:24:28-05:00 2 2021-10-08T21:24:29-05:00RJAVILA             COLL                ADMELLIPSE          sendGeneric
-2021-10-08 21:24:29,386 > [MatrizRiesgos.Controllers.DataController]{Info} > INFO:: 2021-10-08T21:24:28-05:00 3 2021-10-08T21:24:29-05:00RJAVILA             COLL                ADMELLIPSE          {
-	"scriptName":"coeivt",	
-	"action":"IVT_ESTADO",
-	"ruc":"17133341-5"
-}
+﻿2021-12-27 14:52:43,335 > [MatrizRiesgos.Controllers.DataController]{Info} > INFO:: v2.04;2021-12-27 14:51:22;genericSimple;E6;80762;rjavila;COLL;ADMELLIPSE;;After parsing a value an unexpected character was encountered: ". Path 'dMCJ1', line 44, position 2.
+   en Newtonsoft.Json.JsonTextReader.ParsePostValue()
+   en Newtonsoft.Json.JsonTextReader.ReadInternal()
+   en Newtonsoft.Json.JsonTextReader.Read()
+   en Newtonsoft.Json.Linq.JContainer.ReadContentFrom(JsonReader r)
+   en Newtonsoft.Json.Linq.JContainer.ReadTokenFrom(JsonReader reader)
+   en Newtonsoft.Json.Linq.JObject.Load(JsonReader reader)
+   en Newtonsoft.Json.Linq.JObject.Parse(String json)
+   en MatrizRiesgos.Controllers.DataController.genericSimple(HttpRequestMessage value2) en C:\Users\DAVID-PC\OneDrive\Escritorio\matrizapi\MatrizRiesgos\Controllers\DataController.cs:línea 657
+2021-12-27 14:52:52,739 > [MatrizRiesgos.Controllers.DataController]{Info} > INFO:: v2.04;2021-12-27 14:52:47;sendGeneric;OK;5109;rjavila;COLL;ADMELLIPSE;{json:{ "code": "001",  "message": "No se puede crear un nuevo GRT, existen GRT sin finalizar la creación." }}, ; Errors=
+2021-12-27 14:52:52,740 > [MatrizRiesgos.Controllers.DataController]{Info} > INFO:: v2.04;2021-12-27 14:52:43;genericSimple;OK;9386rjavilaCOLLADMELLIPSEOK;{
+	"scriptName":"coeigt",	
+	"action":"IGT_CREAR",
+	"dateOccurred":"23/12/2021",
+	"timeOccurred":"13:00",
+	"prc":"PRS VEO --- GGA --- --- --- --- --- --- ",
+	"nOrden":"",
+	"stanJob":"PM0426",
+	"nContrato":"",
+	"noServicios":"",
+	"empresa":"000756",
+	"actividadVerificada":"Pruebas",
+	"actividadVerificadaExt":"Pruebas",
+	"origenActividad":"01",
+	"rolGRT":"01",
+	"origenGRT":"01",
+	"locationType":"P",
+	"locationCode":"020",
+	"extUbicacion":"PRUEBAS",
+	"dropDownArea":"06",
+	"extArea":"AREA 06",
+	"dropDownProceso":"0038",
+	"extProceso":"PROCESO 0038",
+	"dropDownSubProceso":"0113",
+	"extSubProceso":"-

@@ -1,4 +1,4 @@
-ï»¿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -15,21 +15,34 @@ using System.Web;
 using log4net;
 using Newtonsoft.Json;
 /* Historia
- * 2021-12-23 v2.03 Intento unificaciÃ³n de este componente entre Matriz de Riesgo y Matriz API
+ * 2021-12-28 v2.08 Eliminar atts[1] del log, quitar padRight del log
+ * 2021-12-27 v2.07 Merge 2.05 y 2.06 para subir a GIT
+ * 2021-12-27 v2.06 Optimización de memoria y cpu
+ * 2021-12-24 v2.05 Modificacion de genericSimple en el tipo de parametro de entrada
+ * 2021-12-24 v2.04 Definir mensajes para RETRY - ver Rintentar(ex.Message)
+ *                  E3 = Error no reintentable
+ *                  EX = Error reintentable
+ *                  OR = Reintento exitoso
+ *                  ER = Reintento fallido
+ *                  Futuro: reintentar errores Groovy
+ *                          retornar flag "Fatal":true 
+ *                          ... requiere modificar MatrizRiesgos.Common.cs (httpResponse<R>)
+ *                          Después de re-intentar errores retornar código "Fatal" en vez de "Success"
+ * 2021-12-23 v2.03 Intento unificación de este componente entre Matriz de Riesgo y Matriz API
  *                  Ampliar a 600 caracteres para alojar completos los mensajes RITUS mas largos
- *                  Ver un "OJO" en el cambio de TLS1.2 que estÃ¡ en MatrizAPI y no estaba en MatrisRSK
- * 2021-12-03 v2.02 Eliminar pad del distrito/posiciÃ³n, alargar allAtributes para que quepa Read_Consecuencia
+ *                  Ver un "OJO" en el cambio de TLS1.2 que está en MatrizAPI y no estaba en MatrisRSK
+ * 2021-12-03 v2.02 Eliminar pad del distrito/posición, alargar allAtributes para que quepa Read_Consecuencia
  * 2021-12-02 v2.01 Truncar mensaje SendGeneric en logs, modifica el DateTime.Now.ToString(formatDate) + ";" + por  spanMS + ";" +:
  * 2021-12-02 v2.0- Mejoras en logs:
  *            Agregar version en /api/values, quitar ruta Ellipse
  *            Medir tiempo de /api/values/authenticate - GetForAuthenticate
  *                            /api/values/districts - GetForDistricts
  *                            /api/values/positions - GetForPositions
- *                            /api/values/generic - mover info despuÃ©s de sendGeneric
+ *                            /api/values/generic - mover info después de sendGeneric
  *                            /api/values/genericSimple - simplificar info's
  * 2021-12-01 Upgrade a TLS 1.2
  * 2021-11-28 Si falla el generic, intentar una (1) vez genericRetry
- * 2021-11-27 Reordenar INFO para facilitar anÃ¡lisis del log
+ * 2021-11-27 Reordenar INFO para facilitar análisis del log
  *            Generar errores aleatorios (50%) para probar "Retry Angular" temporal - ojo
  */
 
@@ -37,7 +50,7 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.03";
+        readonly string versionAPI = "v2.08";
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
         //formatDate
@@ -46,7 +59,7 @@ namespace MatrizRiesgos.Controllers
         [Route("api/values")]
         public IEnumerable<string> Get()
         {
-            return new string[] { WebConfigurationManager.AppSettings["EllService"], "App Matriz API VersiÃ³n " + versionAPI + " ... hora del servidor : " + DateTime.Now.ToString() };
+            return new string[] { WebConfigurationManager.AppSettings["EllService"], "App Matriz API Versión " + versionAPI + " ... hora del servidor : " + DateTime.Now.ToString() };
         }
 
         [Authorize]
@@ -54,7 +67,6 @@ namespace MatrizRiesgos.Controllers
         [Route("api/values/authenticate")]
         public Util.HttpResponse<Util.BodyParams> GetForAuthenticate()
         {
-            DateTime intialDate = DateTime.Now;
             var res = new Util.BodyParams();
             var identity = (ClaimsIdentity)User.Identity;
             IEnumerable<Claim> claims = identity.Claims.ToList();
@@ -62,17 +74,7 @@ namespace MatrizRiesgos.Controllers
             res.pwd = claims.Where(f => f.Type == "pwd").FirstOrDefault().Value;
             res.district = claims.Where(f => f.Type == "district").FirstOrDefault().Value;
             res.position = claims.Where(f => f.Type == "position").FirstOrDefault().Value;
-            Util.HttpResponse<Util.BodyParams> resp = new Util.HttpResponse<Util.BodyParams>() { data = res, message = "Datos de : " + claims.Where(f => f.Type == "username").FirstOrDefault().Value, redirect = false, success = true };
-            TimeSpan span = DateTime.Now - intialDate;
-            long spanMS = (long)span.TotalMilliseconds;
-            Info(intialDate.ToString(formatDate) + ";GetForAuthenticate;OK;" +
-                spanMS + ";" +
-                res.username + ";" +
-                res.district + ";" +
-                res.position + ";" +
-                "msg=" + resp.message);
-            return resp;
-            //return new Util.HttpResponse<Util.BodyParams>() { data = res, message = "Datos de : " + claims.Where(f => f.Type == "username").FirstOrDefault().Value, redirect = false, success = true };
+            return new Util.HttpResponse<Util.BodyParams>() { data = res, message = "Datos de : " + claims.Where(f => f.Type == "username").FirstOrDefault().Value, redirect = false, success = true };
         }
 
         [AllowAnonymous]
@@ -86,21 +88,11 @@ namespace MatrizRiesgos.Controllers
             credentials.username = data.GetValue("username").ToString();
             credentials.password = data.GetValue("pwd").ToString();
 
-
+            
 
             if (string.IsNullOrEmpty(WebConfigurationManager.AppSettings["EllipseDistrict"]))
             {
-                HttpResponse<List<EllRow>> resp = GetDefaultDistrict(credentials);
-                TimeSpan span = DateTime.Now - intialDate;
-                long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";GetForDistrictsNull;OK;" +
-                    spanMS + ";" +
-                    credentials.username.PadRight(20, ' ') + ";" +
-                    "<dstr>" + ";" +
-                    "<pos>" + ";" +
-                    "msg=" + resp.message);
                 return GetDefaultDistrict(credentials);
-                //return GetDefaultDistrict(credentials);
             }
             else
             {
@@ -109,17 +101,8 @@ namespace MatrizRiesgos.Controllers
                 credentials.password = WebConfigurationManager.AppSettings["EllipsePassword"];
                 credentials.district = WebConfigurationManager.AppSettings["EllipseDistrict"];
                 credentials.position = WebConfigurationManager.AppSettings["EllipsePosition"];
-                Util.HttpResponse<List<Util.EllRow>> resp = GetDefaultDistrictByGroovy(userToFind, credentials);
-                TimeSpan span = DateTime.Now - intialDate;
-                long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";GetForDistricts;OK;" +
-                    spanMS + ";" +
-                    credentials.username + ";" +
-                    credentials.district + ";" +
-                    credentials.position + ";" +
-                    "msg=" + resp.message);
-                return resp;
-                //return GetDefaultDistrictByGroovy(userToFind, credentials);
+
+                return GetDefaultDistrictByGroovy(userToFind, credentials);
             }
 
         }
@@ -150,17 +133,7 @@ namespace MatrizRiesgos.Controllers
                 }
                 data.Add(row);
                 authService.Dispose();
-                Util.HttpResponse<List<Util.EllRow>> resp = new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "success", redirect = false, success = true };
-                TimeSpan span = DateTime.Now - intialDate;
-                long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";GetDefaultDistrict;OK;" +
-                    spanMS + ";" +
-                    credentials.username.PadRight(20, ' ') + ";" +
-                    "<dstr>" + ";" +
-                    "<pos>" + ";" +
-                    resp.message);
-                return resp;
-                //return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "success", redirect = false, success = true };
+                return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "success", redirect = false, success = true };
             }
             catch (Exception ex)
             {
@@ -168,7 +141,7 @@ namespace MatrizRiesgos.Controllers
                 long spanMS = (long)span.TotalMilliseconds;
                 Info(intialDate.ToString(formatDate) + ";GetDefaultDistrict;E1;" +
                     spanMS + ";" +
-                    credentials.username.PadRight(20, ' ') + ";" +
+                    credentials.username + ";" +
                     "<dstr>" + ";" +
                     "<pos>" + ";" +
                     ex.Message + ";\n" + ex.StackTrace);
@@ -196,17 +169,8 @@ namespace MatrizRiesgos.Controllers
             att3.name = "scriptName";
             att3.value = "coemdr";
             atts.Add(att3);
-            Util.HttpResponse<List<Util.EllRow>> resp = execute(atts, credentials);
-            TimeSpan span = DateTime.Now - intialDate;
-            long spanMS = (long)span.TotalMilliseconds;
-            Info(intialDate.ToString(formatDate) + ";GetDefaultDistrictByGroovy;OK;" +
-                spanMS + ";" +
-                credentials.username.PadRight(20, ' ') + ";" +
-                "<dstr>" + ";" +
-                "<pos>" + ";" +
-                "{action:DISTRITOS_USUARIO, scriptName:coemdr};" + resp.message);
-            return resp;
-            //return execute(atts, credentials);
+
+            return execute(atts, credentials);
         }
 
         [AllowAnonymous]
@@ -214,7 +178,7 @@ namespace MatrizRiesgos.Controllers
         [Route("api/values/forall")]
         public Util.HttpResponse<string> GetF()
         {
-            return new Util.HttpResponse<string>() { data = "", message = "App Matriz de riesgos VersiÃ³n " + versionAPI + " ... hora del servidor : " + DateTime.Now.ToString(), redirect = false, success = true };
+            return new Util.HttpResponse<string>() { data = "", message = "App Matriz de riesgos Versión " + versionAPI + " ... hora del servidor : " + DateTime.Now.ToString(), redirect = false, success = true };
         }
 
         [AllowAnonymous]
@@ -279,18 +243,7 @@ namespace MatrizRiesgos.Controllers
 
             if (string.IsNullOrEmpty(WebConfigurationManager.AppSettings["EllipsePosition"]))
             {
-                Util.HttpResponse<List<Util.EllRow>> resp = new Util.HttpResponse<List<Util.EllRow>>();
-                resp = GetDefaultPosition(credentials);
-                TimeSpan span = DateTime.Now - intialDate;
-                long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";GetForPositionsNULL;OK;" +
-                    spanMS + ";" +
-                    credentials.username.PadRight(20, ' ') + ";" +
-                    "<dstr>" + ";" +
-                    "<pos>" + ";" +
-                    "Msg=" + resp.message);
-                return resp;
-                //return GetDefaultPosition(credentials);
+                return GetDefaultPosition(credentials);
             }
             else
             {
@@ -299,18 +252,7 @@ namespace MatrizRiesgos.Controllers
                 credentials.password = WebConfigurationManager.AppSettings["EllipsePassword"];
                 credentials.district = WebConfigurationManager.AppSettings["EllipseDistrict"];
                 credentials.position = WebConfigurationManager.AppSettings["EllipsePosition"];
-                Util.HttpResponse<List<Util.EllRow>> resp = new Util.HttpResponse<List<Util.EllRow>>();
-                resp = GetDefaultPositionByGroovy(userToFind, credentials);
-                TimeSpan span = DateTime.Now - intialDate;
-                long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";GetForPositions;OK;" +
-                    spanMS + ";" +
-                    credentials.username + ";" +
-                    credentials.district + ";" +
-                    credentials.position + ";" +
-                    "Msg=" + resp.message);
-                return resp;
-                //return GetDefaultPositionByGroovy(userToFind, credentials);
+                return GetDefaultPositionByGroovy(userToFind, credentials);
             }
         }
 
@@ -344,17 +286,7 @@ namespace MatrizRiesgos.Controllers
                 }
                 data.Add(row);
                 authService.Dispose();
-                Util.HttpResponse<List<Util.EllRow>> resp = new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "success", redirect = false, success = true };
-                TimeSpan span = DateTime.Now - intialDate;
-                long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";GetDefaultPosition;OK;" +
-                    spanMS + ";" +
-                    credentials.username.PadRight(20, ' ') + ";" +
-                    "<dstr>" + ";" +
-                    "<pos>" + ";" +
-                    "Msg=" + resp.message);
-                return resp;
-                //return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "success", redirect = false, success = true };
+                return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "success", redirect = false, success = true };
             }
             catch (Exception ex)
             {
@@ -362,7 +294,7 @@ namespace MatrizRiesgos.Controllers
                 long spanMS = (long)span.TotalMilliseconds;
                 Info(intialDate.ToString(formatDate) + ";GetDefaultPosition;E2;" +
                     spanMS + ";" +
-                    credentials.username.PadRight(20, ' ') + ";" +
+                    credentials.username + ";" +
                     "<dstr>" + ";" +
                     "<pos>" + ";" +
                     ex.Message + ";\n" + ex.StackTrace);
@@ -374,7 +306,6 @@ namespace MatrizRiesgos.Controllers
         }
         public Util.HttpResponse<List<Util.EllRow>> GetDefaultPositionByGroovy(string username, Credentials credentials)
         {
-            DateTime intialDate = DateTime.Now;
             List<GenericScriptService.Attribute> atts = new List<GenericScriptService.Attribute>();
             GenericScriptService.Attribute att = new GenericScriptService.Attribute();
             att.name = "user";
@@ -390,22 +321,12 @@ namespace MatrizRiesgos.Controllers
             att3.name = "scriptName";
             att3.value = "coemdr";
             atts.Add(att3);
-            Util.HttpResponse<List<Util.EllRow>> resp = execute(atts, credentials);
-            TimeSpan span = DateTime.Now - intialDate;
-            long spanMS = (long)span.TotalMilliseconds;
-            Info(intialDate.ToString(formatDate) + ";GetForDistricts;OK;" +
-                spanMS + ";" +
-                credentials.username + ";" +
-                credentials.district + ";" +
-                credentials.position + ";" +
-                "msg=" + resp.message);
-            return resp;
-            //return execute(atts, credentials);
+
+            return execute(atts, credentials);
         }
 
         public Util.HttpResponse<List<Util.EllRow>> GetAttachmentByGroovy(string primaryKey, string blobUUID, string scriptName, Credentials credentials)
         {
-            DateTime intialDate = DateTime.Now;
             List<GenericScriptService.Attribute> atts = new List<GenericScriptService.Attribute>();
             GenericScriptService.Attribute att1 = new GenericScriptService.Attribute();
             att1.name = "primaryKey";
@@ -427,17 +348,7 @@ namespace MatrizRiesgos.Controllers
             att4.value = scriptName;
             atts.Add(att4);
 
-            Util.HttpResponse<List<Util.EllRow>> resp = execute(atts, credentials);
-            TimeSpan span = DateTime.Now - intialDate;
-            long spanMS = (long)span.TotalMilliseconds;
-            Info(intialDate.ToString(formatDate) + ";GetAttachmentByGroovy;OK;" +
-                spanMS + ";" +
-                credentials.username + ";" +
-                credentials.district + ";" +
-                credentials.position + ";" +
-                "msg=" + resp.message);
-            return resp;
-            //return execute(atts, credentials);
+            return execute(atts, credentials);
         }
 
         [Authorize]
@@ -511,42 +422,53 @@ namespace MatrizRiesgos.Controllers
             {
                 TimeSpan span = DateTime.Now - intialDate;
                 long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";generic;E3;" +
+                bool reintentar = Rintentar(ex.Message);
+                string codigoError = "E3";
+                if (reintentar) codigoError = "EX";
+                Info(intialDate.ToString(formatDate) + ";generic;" + codigoError + ";" +
                     spanMS + ";" +
                     credentials.username + ";" +
                     opSheet.district + ";" +
                     opSheet.position + ";" +
                     ex.Message + ";\n" + ex.StackTrace);
-
-                intialDate = DateTime.Now;
-                try
+                if (reintentar)
                 {
-                    result = sendGeneric(opSheet, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
-                    if (allAttributes.Length > 600)
+                    intialDate = DateTime.Now;
+                    try
                     {
-                        allAttributes = allAttributes.Substring(0, 600);
+                        result = sendGeneric(opSheet, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
+                        if (allAttributes.Length > 600)
+                        {
+                            allAttributes = allAttributes.Substring(0, 600);
+                        }
+                        span = DateTime.Now - intialDate;
+                        spanMS = (long)span.TotalMilliseconds;
+                        Info(intialDate.ToString(formatDate) + ";genericRetry;OR;" +
+                            spanMS + ";" +
+                            credentials.username + ";" +
+                            opSheet.district + ";" +
+                            opSheet.position + ";" +
+                            allAttributes + ";" + ex.Message);
                     }
-                    span = DateTime.Now - intialDate;
-                    spanMS = (long)span.TotalMilliseconds;
-                    Info(intialDate.ToString(formatDate) + ";genericRetry;OR;" +
-                        spanMS + ";" +
-                        credentials.username + ";" +
-                        opSheet.district + ";" +
-                        opSheet.position + ";" +
-                        allAttributes + ";" + ex.Message);
-                }
-                catch (Exception ex2)
-                {
-                    span = DateTime.Now - intialDate;
-                    spanMS = (long)span.TotalMilliseconds;
-                    Info(intialDate.ToString(formatDate) + ";genericRetry;ER;" +
-                        spanMS + ";" +
-                        credentials.username + ";" +
-                        opSheet.district + ";" +
-                        opSheet.position + ";" +
-                        allAttributes + ";" + ex2.Message + "\n" + ex2.StackTrace);
+                    catch (Exception ex2)
+                    {
+                        span = DateTime.Now - intialDate;
+                        spanMS = (long)span.TotalMilliseconds;
+                        Info(intialDate.ToString(formatDate) + ";genericRetry;ER;" +
+                            spanMS + ";" +
+                            credentials.username + ";" +
+                            opSheet.district + ";" +
+                            opSheet.position + ";" +
+                            allAttributes + ";" + ex2.Message + "\n" + ex2.StackTrace);
 
-                    result.message = ex2.Message;
+                        result.message = ex2.Message;
+                        result.data = new List<Util.EllRow>();
+                        result.success = false;
+                    }
+                }
+                else
+                {
+                    result.message = ex.Message;
                     result.data = new List<Util.EllRow>();
                     result.success = false;
                 }
@@ -556,6 +478,39 @@ namespace MatrizRiesgos.Controllers
             return result;
         }
 
+        private bool Rintentar(String mensaje)
+        {
+            bool ok = false;
+            mensaje = mensaje.ToUpper();
+            //nested exception is javax.transaction.RollbackException: ARJUNA016053: Could not commit transaction.
+            //an unexpected exception prevented the connection from being created.please refer to server logs for details.
+            //EMPLOYEE NOT AN INCUMBENT OF THIS POSITION
+            //JTA transaction unexpectedly rolled back(maybe due to a timeout)
+            //The operation has timed out
+            //The remote name could not be resolved: 'prd-p02-col.ellipsehosting.com'
+            //The request failed with HTTP status 502: Proxy Error.
+            //The underlying connection was closed: An unexpected error occurred on a receive.
+            if ((mensaje.IndexOf("NOT AN INCUMBENT") > 0) ||
+                (mensaje.IndexOf("COULD NOT BE RESOLVED") > 0) ||
+                (mensaje.IndexOf("ROLLBACKEXCEPTION") > 0) ||
+                (mensaje.IndexOf("UNEXPECTED EXCEPTION") > 0) ||
+                (mensaje.IndexOf("UNEXPECTEDLY ROLLED BACK") > 0) ||
+                (mensaje.IndexOf("FAILED WITH HTTP STATUS") > 0) ||
+                (mensaje.IndexOf("CONNECTION WAS CLOSED") > 0) ||
+                (mensaje.IndexOf("UNDERLYING CONNECTION") > 0) ||
+                (mensaje.IndexOf("TIMED OUT") > 0) )
+            {
+                ok = true;
+            }
+            // FUTURO:
+            // Object reference not set to an instance of an object.
+            // Operacion no valida
+            // Unable to execute script
+            //  (mensaje.IndexOf("OBJECT REFERENCE NOT SET") > 0) ||
+            //  (mensaje.IndexOf("OPERACION NO VALIDA") > 0) ||
+            //  (mensaje.IndexOf("UNABLE TO EXECUTE") > 0) ||
+            return ok;
+        }
         public static string GetRequestBody()
         {
             var bodyStream = new StreamReader(HttpContext.Current.Request.InputStream);
@@ -567,10 +522,10 @@ namespace MatrizRiesgos.Controllers
         [Authorize]
         [HttpPost]
         [Route("api/values/genericSimple")]
-        public JObject genericSimple([FromBody] String value)
+        public JObject genericSimple([FromBody] HttpRequestMessage value2)
         {
             DateTime intialDate = DateTime.Now;
-            value = GetRequestBody();
+            string value = GetRequestBody();
             Credentials credentials = new Credentials();
             var identity = (ClaimsIdentity)User.Identity;
             string allAttributes = "";
@@ -653,7 +608,7 @@ namespace MatrizRiesgos.Controllers
 
             proxySheet.Abort();
             proxySheet.Dispose();
-            return json;
+            return json;//new HttpResponseMessage();
         }
 
         private List<GenericScriptService.Attribute> ConvertParamsToEllipse(JObject json)
@@ -702,21 +657,19 @@ namespace MatrizRiesgos.Controllers
             GenericScriptService.GenericScriptDTO genericScriptDTO,
             Credentials credentials)
         {
-            DateTime intialDate = DateTime.Now;
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
             EllipseWebServicesClient.ClientConversation.username = credentials.username;
             EllipseWebServicesClient.ClientConversation.password = credentials.password;
 
 
-
+            DateTime intialDate = DateTime.Now;
             GenericScriptService.GenericScriptServiceResult[] genericScriptServiceResults = proxySheet.executeForCollection(opSheet, genericScriptSearchParam, genericScriptDTO);
             Util.HttpResponse<List<Util.EllRow>> result = new Util.HttpResponse<List<Util.EllRow>>();
             List<Util.EllRow> data = new List<Util.EllRow>();
             //bool redirect = false;
 
             string errors = "";
-            string allAttributes = "";
             foreach (GenericScriptService.GenericScriptServiceResult genericScriptServiceResult in genericScriptServiceResults)
             {
                 var row = new Util.EllRow();
@@ -735,60 +688,38 @@ namespace MatrizRiesgos.Controllers
                     foreach (GenericScriptService.Attribute attribute in dto.customAttributes)
                     {
                         row.atts.Add(new Util.Attribute() { name = attribute.name, value = attribute.value });
-                        allAttributes += "{" + attribute.name + ":" + attribute.value + "}, ";
                     }
                 }
                 else
                 {
                     row.atts.Add(new Util.Attribute() { name = "type", value = "E" });
                     row.atts.Add(new Util.Attribute() { name = "description", value = genericScriptServiceResult.errors[0].messageText });
-                    allAttributes += "{type:E},{description:" + genericScriptServiceResult.errors[0].messageText + "},";
                     //if (genericScriptServiceResult.errors[0].messageText == "USUARIO NO TIENE PRIVILEGIOS A LA MATRIZ DE RIESGOS") { redirect = true; }
                 }
             }
 
             //capturar error
-            string resultadoLog = "OK";
             if (data.Count > 0)
             {
                 if (data[0].atts.Count > 0)
                 {
+                    Info(intialDate.ToString(formatDate) + ";GROOVY;OK;" +
+                        DateTime.Now.ToString(formatDate) + ";" +
+                        credentials.username + ";" +
+                        opSheet.district + ";" +
+                        opSheet.position + ";" +
+                        " " + data[0].atts[0].value);
 
                     if (data[0].atts[0].name == "type" && data[0].atts[0].value == "E")
                     {
-                        resultadoLog = "E4";
-                        errors = errors + data[0].atts[1].value + " - ";
                         throw new Exception(data[0].atts[1].value);
                     }
                     if (data[0].atts[0].name == "error")
                     {
-                        resultadoLog = "E5";
-                        errors = errors + data[0].atts[0].value + " - ";
                         throw new Exception(data[0].atts[0].value);
                     }
                 }
             }
-            if (resultadoLog == "OK")
-            {
-                allAttributes = allAttributes + "; Errors=" + errors;
-            }
-            else
-            {
-                allAttributes = errors + "; JsonOutput=" + allAttributes;
-            }
-            if (allAttributes.Length > 600)
-            {
-                allAttributes = allAttributes.Substring(0, 600);
-            }
-
-            TimeSpan span = DateTime.Now - intialDate;
-            long spanMS = (long)span.TotalMilliseconds;
-            Info(intialDate.ToString(formatDate) + ";sendGeneric;" + resultadoLog + ";" +
-                spanMS + ";" +
-                credentials.username + ";" +
-                opSheet.district + ";" +
-                opSheet.position + ";" +
-                allAttributes);
 
             result.redirect = null;
             result.message = "Generic se ejecuto Correctamente";
@@ -833,8 +764,6 @@ namespace MatrizRiesgos.Controllers
             {
                 Url = URL + "GenericScriptService"
             };
-            string errors = "";
-            string allAttributes = "";
             try
             {
                 GenericScriptDTO genericScriptDTO = new GenericScriptDTO
@@ -850,14 +779,14 @@ namespace MatrizRiesgos.Controllers
                 {
 
                     GenericScriptServiceResult[] results = proxySheet.executeForCollection(opSheet, genericScriptSearchParam, genericScriptDTO);
+                    string errors = "";
                     foreach (GenericScriptServiceResult genericScriptServiceResult in results)
                     {
-
+                        
                         String name = genericScriptServiceResult.genericScriptDTO.customAttributes[0].value;
                         String value = genericScriptServiceResult.genericScriptDTO.customAttributes[1].value;
 
                         row.atts.Add(new Util.Attribute() { name = name, value = value });
-                        allAttributes += "{" + name + ":" + value + "}, ";
 
                         foreach (Error error in genericScriptServiceResult.errors)
                         {
@@ -873,7 +802,7 @@ namespace MatrizRiesgos.Controllers
                         credentials.username + ";" +
                         opSheet.district + ";" +
                         opSheet.position + ";" +
-                        allAttributes + ";Errors=" + errors);
+                        "Errors=" + errors);
 
                     data.Add(row);
                     return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "success", redirect = false, success = true };
