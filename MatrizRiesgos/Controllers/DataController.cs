@@ -15,6 +15,7 @@ using System.Web;
 using log4net;
 using Newtonsoft.Json;
 /* Historia
+ * 2022-03-22 v2.09 Se agrega metodo para obtener el password sin econding. [Clase MyAuthorizationServerProvider.cs]
  * 2021-12-28 v2.08 Eliminar atts[1] del log, quitar padRight del log
  * 2021-12-27 v2.07 Merge 2.05 y 2.06 para subir a GIT
  * 2021-12-27 v2.06 Optimización de memoria y cpu
@@ -50,7 +51,7 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.08";
+        readonly string versionAPI = "v2.09";
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
         //formatDate
