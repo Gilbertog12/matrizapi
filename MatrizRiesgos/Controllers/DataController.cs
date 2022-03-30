@@ -620,10 +620,17 @@ namespace MatrizRiesgos.Controllers
             foreach (var item in dictionary)
             {
                 var key = item.Key;
-                var person = item.Value;
+                var value = item.Value;
                 GenericScriptService.Attribute att = new GenericScriptService.Attribute();
                 att.name = key.ToString();
-                att.value = person.ToString();
+                if (value != null)
+                {
+                    att.value = value.ToString();
+                } else
+                {
+                    att.value = "";
+                }
+
                 atts.Add(att);
             }
             return atts;
