@@ -62,15 +62,17 @@ namespace MatrizRiesgos
                     //position = GetDefaultPosition(context.UserName, context.Password);
                 }*/
 
-                EllipseWebServicesClient.ClientConversation.username = context.UserName;
-                if (!string.IsNullOrEmpty(rawPassword))
-                {
+                EllipseWebServicesClient.ClientConversation.username = context.UserName; 
+                /*if (!string.IsNullOrEmpty(rawPassword))
                     EllipseWebServicesClient.ClientConversation.password = rawPassword;
                 }
                 else
                 {
                     EllipseWebServicesClient.ClientConversation.password = context.Password;
                 }
+                */
+
+                EllipseWebServicesClient.ClientConversation.password = context.Password.Replace(" ", "+");
 
                 op.district = district;
                 op.position = position;
