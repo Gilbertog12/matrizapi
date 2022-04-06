@@ -62,13 +62,13 @@ namespace MatrizRiesgos
                     //position = GetDefaultPosition(context.UserName, context.Password);
                 }*/
 
-                EllipseWebServicesClient.ClientConversation.username = context.UserName; 
+                EllipseWebServicesClient.ClientConversation.username = context.UserName;
+                EllipseWebServicesClient.ClientConversation.password = context.Password.Replace(" ", "+");
+
                 /*if (!string.IsNullOrEmpty(rawPassword))
                     EllipseWebServicesClient.ClientConversation.password = rawPassword;
                 else
                     EllipseWebServicesClient.ClientConversation.password = context.Password;*/
-
-                EllipseWebServicesClient.ClientConversation.password = context.Password.Replace(" ", "+");
 
                 op.district = district;
                 op.position = position;
@@ -76,7 +76,7 @@ namespace MatrizRiesgos
                 auth.authenticate(op);
                 identity.AddClaim(new Claim(ClaimTypes.Role, "admin"));
                 identity.AddClaim(new Claim("username", context.UserName));
-                identity.AddClaim(new Claim("pwd", context.Password));
+                identity.AddClaim(new Claim("pwd", context.Password.Replace(" ", "+")));
                 identity.AddClaim(new Claim("district", district));
                 identity.AddClaim(new Claim("position", position));
                 context.Validated(identity);
