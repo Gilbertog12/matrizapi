@@ -9,9 +9,14 @@ namespace MatrizRiesgos.Util
 {
     public class Credentials
     {
+        private string _district = "";
+
         public string username { get; set; }
         public string password { get; set; }
-        public string district { get; set; }
+        public string district { 
+            get { return _district; }
+            set { _district = value.PadRight(4,' ').Substring(0, 4); } 
+        }
         public string position { get; set; }
     }
 

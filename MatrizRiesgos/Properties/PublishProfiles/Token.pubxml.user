@@ -49,13 +49,13 @@ editando este archivo MSBuild. Para conocer más acerca de esto, visite http://g
       <publishTime>10/19/2020 06:40:10</publishTime>
     </File>
     <File Include="bin/MatrizRiesgos.dll">
-      <publishTime>10/09/2021 05:32:26</publishTime>
+      <publishTime>04/09/2022 07:58:36</publishTime>
     </File>
     <File Include="bin/MatrizRiesgos.pdb">
-      <publishTime>10/09/2021 05:32:26</publishTime>
+      <publishTime>04/09/2022 07:58:36</publishTime>
     </File>
     <File Include="bin/MatrizRiesgos.XmlSerializers.dll">
-      <publishTime>10/09/2021 05:32:27</publishTime>
+      <publishTime>04/09/2022 07:58:37</publishTime>
     </File>
     <File Include="bin/Microsoft.AI.Agent.Intercept.dll">
       <publishTime>12/07/2015 19:04:38</publishTime>
@@ -101,6 +101,9 @@ editando este archivo MSBuild. Para conocer más acerca de esto, visite http://g
     </File>
     <File Include="bin/Newtonsoft.Json.dll">
       <publishTime>08/03/2014 20:33:56</publishTime>
+    </File>
+    <File Include="bin/Oracle.ManagedDataAccess.dll">
+      <publishTime>12/24/2021 14:47:58</publishTime>
     </File>
     <File Include="bin/Owin.dll">
       <publishTime>11/13/2012 12:19:34</publishTime>
@@ -178,7 +181,7 @@ editando este archivo MSBuild. Para conocer más acerca de esto, visite http://g
       <publishTime>08/17/2019 21:56:23</publishTime>
     </File>
     <File Include="packages.config">
-      <publishTime>09/11/2021 20:36:28</publishTime>
+      <publishTime>04/08/2022 08:37:29</publishTime>
     </File>
     <File Include="scripts/ai.0.22.9-build00167.js">
       <publishTime>08/17/2019 21:40:24</publishTime>
@@ -190,19 +193,19 @@ editando este archivo MSBuild. Para conocer más acerca de esto, visite http://g
       <publishTime>08/17/2019 21:39:06</publishTime>
     </File>
     <File Include="Web References/AuthenticatorService/NameValuePair.datasource">
-      <publishTime>08/17/2019 22:00:16</publishTime>
+      <publishTime>12/22/2021 10:34:55</publishTime>
     </File>
     <File Include="Web References/AuthenticatorService/Reference.map">
       <publishTime>08/17/2019 22:00:10</publishTime>
     </File>
     <File Include="Web References/GenericScriptService/GenericScriptServiceResult.datasource">
-      <publishTime>08/17/2019 22:01:19</publishTime>
+      <publishTime>12/22/2021 10:35:06</publishTime>
     </File>
     <File Include="Web References/GenericScriptService/Reference.map">
       <publishTime>08/17/2019 22:01:18</publishTime>
     </File>
     <File Include="Web.config">
-      <publishTime>09/12/2021 07:15:56</publishTime>
+      <publishTime>04/09/2022 07:36:00</publishTime>
     </File>
   </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-﻿using Oracle.DataAccess.Client;
+﻿using Oracle.ManagedDataAccess.Client;
 using System;
 using System.Collections.Generic;
 using System.Web.Configuration;
@@ -79,7 +79,8 @@ namespace MatrizRiesgos.Util
             }
             catch (Exception)
             {
-            } finally
+            }
+            finally
             {
                 this.CloseDB();
             }

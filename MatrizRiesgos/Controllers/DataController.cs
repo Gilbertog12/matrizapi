@@ -16,6 +16,8 @@ using log4net;
 using Newtonsoft.Json;
 using System.Globalization;
 /* Historia
+* 2022-04-05 v2.14 Se adiciona en el web.config parametro "bufferSize" para la inmediata escrituroa del log. Se toman solo los 4 primeros caracteres del distrito para mostrar en el log.
+* 2022-04-05 v2.13 Estandarizacion de los mensajes de log .
 * 2022-04-05 v2.12 Se adiciona informacion en el log de datos del request y response de los llamados al API a traves del metodo sendGeneric.
 * 2022-04-03 v2.11 Se adiciona informacion en el log de datos del request y response de los llamados al API a traves del metodo sendGenericSimple.
 * 2022-03-30 v2.10 Se corrige recepcion de parametros en null.
@@ -55,9 +57,10 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.12";
+        readonly string versionAPI = "v2.14";
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
+        private static readonly int MAX_LONG_RESPONSE = 600;
         //formatDate
 
         [HttpGet]
@@ -238,7 +241,7 @@ namespace MatrizRiesgos.Controllers
             {
                 TimeSpan span = DateTime.Now - intialDate;
                 long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";GetDefaultDistrict;E1;" +
+                Info(intialDate.ToString(formatDate) + ";MatrizApi;GetDefaultDistrict;E1;" +
                     spanMS + ";0;" +
                     credentials.username + ";" +
                     "<dstr>" + ";" +
@@ -508,16 +511,16 @@ namespace MatrizRiesgos.Controllers
 
                 
                 result = sendGeneric(opSheet, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
-                if (allAttributes.Length > 600)
+                if (allAttributes.Length > MAX_LONG_RESPONSE)
                 {
-                    allAttributes = allAttributes.Substring(0, 600);
+                    allAttributes = allAttributes.Substring(0, MAX_LONG_RESPONSE) + "...";
                 }
 
                 scriptActionParam = GetParamValue(atts.ToArray(), "action");
                 scriptNameParam = GetParamValue(atts.ToArray(), "scriptName");
                 try
                 {
-                    timeParam = GetParamValue(result.data[0].atts.ToArray(), "time");
+                    timeParam = GetParamValue(result.data, "time");
                 } catch (Exception)
                 {
                     timeParam = "0";
@@ -525,10 +528,13 @@ namespace MatrizRiesgos.Controllers
 
                 TimeSpan span = DateTime.Now - intialDate;
                 long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";" + scriptNameParam + ";" + scriptActionParam + ";OK;" +
-                    GetTimeValue(timeParam) + ";0;" +
+                Info(intialDate.ToString(formatDate) + ";" + 
+                    scriptNameParam + ";" + 
+                    scriptActionParam + ";OK;" +
+                    spanMS + ";" +
+                    GetTimeValue(timeParam) + ";" +
                     credentials.username + ";" +
-                    opSheet.district + ";" +
+                    credentials.district + ";" +
                     opSheet.position + ";" +
                     allAttributes);
 
@@ -540,10 +546,10 @@ namespace MatrizRiesgos.Controllers
                 bool reintentar = Rintentar(ex.Message);
                 string codigoError = "E3";
                 if (reintentar) codigoError = "EX";
-                Info(intialDate.ToString(formatDate) + ";generic;" + codigoError + ";" +
-                    spanMS + ";0;" +
+                Info(intialDate.ToString(formatDate) + ";generic;genericException;" + codigoError + ";0;" +
+                    spanMS + ";" +
                     credentials.username + ";" +
-                    opSheet.district + ";" +
+                    credentials.district + ";" +
                     opSheet.position + ";" +
                     ex.Message + ";\n" + ex.StackTrace);
                 if (reintentar)
@@ -552,16 +558,16 @@ namespace MatrizRiesgos.Controllers
                     try
                     {
                         result = sendGeneric(opSheet, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
-                        if (allAttributes.Length > 600)
+                        if (allAttributes.Length > MAX_LONG_RESPONSE)
                         {
-                            allAttributes = allAttributes.Substring(0, 600);
+                            allAttributes = allAttributes.Substring(0, MAX_LONG_RESPONSE) + "...";
                         }
                         span = DateTime.Now - intialDate;
                         spanMS = (long)span.TotalMilliseconds;
-                        Info(intialDate.ToString(formatDate) + ";genericRetry;OR;" +
+                        Info(intialDate.ToString(formatDate) + ";generic;genericRetry;OR;" +
                             spanMS + ";0;" +
                             credentials.username + ";" +
-                            opSheet.district + ";" +
+                            credentials.district + ";" +
                             opSheet.position + ";" +
                             allAttributes + ";" + ex.Message);
                     }
@@ -569,10 +575,10 @@ namespace MatrizRiesgos.Controllers
                     {
                         span = DateTime.Now - intialDate;
                         spanMS = (long)span.TotalMilliseconds;
-                        Info(intialDate.ToString(formatDate) + ";genericRetry;ER;" +
+                        Info(intialDate.ToString(formatDate) + ";generic;genericRetry;ER;" +
                             spanMS + ";0;" +
                             credentials.username + ";" +
-                            opSheet.district + ";" +
+                            credentials.district + ";" +
                             opSheet.position + ";" +
                             allAttributes + ";" + ex2.Message + "\n" + ex2.StackTrace);
 
@@ -698,9 +704,9 @@ namespace MatrizRiesgos.Controllers
                         error = resultado
                     });
                 }
-                if (allAttributes.Length > 600)
+                if (allAttributes.Length > MAX_LONG_RESPONSE)
                 {
-                    allAttributes = allAttributes.Substring(0, 600);
+                    allAttributes = allAttributes.Substring(0, MAX_LONG_RESPONSE);
                 }
                 
                 time = GetParamValue(json, "time");
@@ -710,7 +716,7 @@ namespace MatrizRiesgos.Controllers
                 Info(intialDate.ToString(formatDate) + ";" + scriptNameParam + ";" + actionPparam + ";OK;" +
                     spanMS + ";" + GetTimeValue(time) + ";" +
                     credentials.username + ";" +
-                    opSheet.district + ";" +
+                    credentials.district + ";" +
                     opSheet.position + ";" +
                     allAttributes + ";" + resultado);
             }
@@ -721,7 +727,7 @@ namespace MatrizRiesgos.Controllers
                 Info(intialDate.ToString(formatDate) + ";" + scriptNameParam + ";" + actionPparam + ";E6;" +
                     spanMS + ";0;" +
                     credentials.username + ";" +
-                    opSheet.district + ";" +
+                    credentials.district + ";" +
                     opSheet.position + ";" +
                     allAttributes + ";" + ex.Message + "\n" + ex.StackTrace);
 
@@ -827,6 +833,24 @@ namespace MatrizRiesgos.Controllers
             }
         }
 
+        private string GetParamValue(List<EllRow> ellRows, string parameter)
+        {
+            try
+            {
+                foreach (EllRow ellRow in ellRows) {
+                    Util.Attribute att = Array.Find(ellRow.atts.ToArray(), element => element.name.Equals(parameter));
+                    if (att != null)
+                        return att.value;
+                }
+            }
+            catch (Exception)
+            {
+                return "";
+            }
+
+            return "";
+        }
+
         private string GetParamValue(GenericScriptServiceResult[] paramResults, string parameter)
         {
             try
@@ -840,7 +864,8 @@ namespace MatrizRiesgos.Controllers
                     } else
                     {
                         att = Array.Find(paramResult.genericScriptDTO.customAttributes, element => element.name.Equals(parameter));
-                        return att.value;
+                        if (att != null)
+                            return att.value;
                     }
                 }
                 return "";
@@ -884,6 +909,7 @@ namespace MatrizRiesgos.Controllers
                 if (trace.Equals("Y"))
                 {
                     log.Info(versionAPI + ";" + text);
+                    //LogManager.Flush(500);
                 }
             }
         }
@@ -946,9 +972,9 @@ namespace MatrizRiesgos.Controllers
                     string timeParam = GetParamValue(genericScriptServiceResults, "time");
                     
                     Info(intialDate.ToString(formatDate) + ";" + scriptNameParam + ";" + scriptActionParam + ";OK;" +
-                        GetTimeValue(timeParam) + ";0;" +
+                        "0;" + GetTimeValue(timeParam) + ";" + 
                         credentials.username + ";" +
-                        opSheet.district + ";" +
+                        credentials.district + ";" +
                         opSheet.position + ";" +
                         " " + data[0].atts[0].value);
 
@@ -982,7 +1008,7 @@ namespace MatrizRiesgos.Controllers
             return Ok("Hello " + identity.Name + " Role " + string.Join(",", roles.ToList()));
         }*/
 
-            private Util.HttpResponse<List<Util.EllRow>> execute(List<GenericScriptService.Attribute> atts, Credentials credentials)
+        private Util.HttpResponse<List<Util.EllRow>> execute(List<GenericScriptService.Attribute> atts, Credentials credentials)
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             DateTime intialDate = DateTime.Now;
@@ -1042,7 +1068,7 @@ namespace MatrizRiesgos.Controllers
                     Info(intialDate.ToString(formatDate) + ";execute;OK;" +
                         spanMS + ";0;" +
                         credentials.username + ";" +
-                        opSheet.district + ";" +
+                        credentials.district + ";" +
                         opSheet.position + ";" +
                         "Errors=" + errors);
 

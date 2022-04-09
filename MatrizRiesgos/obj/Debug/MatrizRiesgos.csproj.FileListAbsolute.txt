@@ -550,3 +550,4 @@ C:\Trabajos\Desarrollos\VS\matrizapi\MatrizRiesgos\obj\Debug\MatrizRiesgos.cspro
 C:\Trabajos\Desarrollos\VS\matrizapi\MatrizRiesgos\obj\Debug\MatrizRiesgos.csproj.CopyComplete
 C:\Trabajos\Desarrollos\VS\matrizapi\MatrizRiesgos\obj\Debug\MatrizRiesgos.dll
 C:\Trabajos\Desarrollos\VS\matrizapi\MatrizRiesgos\obj\Debug\MatrizRiesgos.pdb
+C:\Trabajos\Desarrollos\VS\matrizapi\MatrizRiesgos\bin\Oracle.ManagedDataAccess.dll
