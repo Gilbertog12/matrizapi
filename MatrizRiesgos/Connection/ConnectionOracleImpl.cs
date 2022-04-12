@@ -68,12 +68,12 @@ namespace MatrizRiesgos.Util
                 int indexRow = 0;
                 while (dataReader.Read())
                 {
-                    indexRow++;
                     for (int indexColumn = 0; indexColumn < dataReader.FieldCount; indexColumn++)
                     {
                         row.Add(dataReader.GetName(indexColumn), dataReader.GetOracleValue(indexColumn));
                     }
                     data.Add(indexRow, row);
+                    indexRow++;
                 }
 
             }
