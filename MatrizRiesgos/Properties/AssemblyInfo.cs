@@ -5,7 +5,6 @@ using System.Runtime.InteropServices;
 // La información general sobre un ensamblado se controla mediante el siguiente 
 // conjunto de atributos. Cambie los valores de estos atributos para modificar la información
 // asociada a un ensamblado.
-[assembly: log4net.Config.XmlConfigurator]
 [assembly: AssemblyTitle("MatrizRiesgos")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]

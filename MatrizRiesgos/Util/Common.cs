@@ -18,6 +18,10 @@ namespace MatrizRiesgos.Util
             set { _district = value.PadRight(4,' ').Substring(0, 4); } 
         }
         public string position { get; set; }
+
+        public string attributeType { get; set; }
+        public string scriptName { get; set; }
+        public string actionName { get; set; }
     }
 
     public class BodyParams

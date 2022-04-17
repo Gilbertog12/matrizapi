@@ -12,10 +12,11 @@ using MatrizRiesgos.Util;
 using Newtonsoft.Json.Linq;
 using System.IO;
 using System.Web;
-using log4net;
+using NLog;
 using Newtonsoft.Json;
 using System.Globalization;
 /* Historia
+* 2022-04-12 v2.15 Se agregan los al metodo monitor.
 * 2022-04-05 v2.14 Se adiciona en el web.config parametro "bufferSize" para la inmediata escrituroa del log. Se toman solo los 4 primeros caracteres del distrito para mostrar en el log.
 * 2022-04-05 v2.13 Estandarizacion de los mensajes de log .
 * 2022-04-05 v2.12 Se adiciona informacion en el log de datos del request y response de los llamados al API a traves del metodo sendGeneric.
@@ -57,8 +58,9 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.14";
-        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        readonly string versionAPI = "v2.15";
+        //private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        Logger log = NLog.LogManager.GetCurrentClassLogger();
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
         private static readonly int MAX_LONG_RESPONSE = 600;
         //formatDate
@@ -85,17 +87,265 @@ namespace MatrizRiesgos.Controllers
             return new Util.HttpResponse<Util.BodyParams>() { data = res, message = "Datos de : " + claims.Where(f => f.Type == "username").FirstOrDefault().Value, redirect = false, success = true };
         }
 
+        [Authorize]
+        [HttpPost]
+        [Route("api/values/generic")]
+        public Util.HttpResponse<List<Util.EllRow>> generic([FromBody] Util.BodyParams value)
+        {
+            DateTime intialDate = DateTime.Now;
+            Credentials credentials = new Credentials();
+            var identity = (ClaimsIdentity)User.Identity;
+            string allAttributes = "";
+
+            IEnumerable<Claim> claims = identity.Claims.ToList();
+            GenericScriptService.OperationContext opSheet = new GenericScriptService.OperationContext();
+            Util.HttpResponse<List<Util.EllRow>> result = new Util.HttpResponse<List<Util.EllRow>>();
+            List<Util.EllRow> data = new List<Util.EllRow>();
+            List<Util.Attribute> dataitem = new List<Util.Attribute>();
+            GenericScriptService.GenericScriptService proxySheet = new GenericScriptService.GenericScriptService();
+
+            credentials.username = claims.Where(f => f.Type == "username").FirstOrDefault().Value;
+            credentials.password = claims.Where(f => f.Type == "pwd").FirstOrDefault().Value;
+            opSheet.district = claims.Where(f => f.Type == "district").FirstOrDefault().Value;
+            opSheet.position = claims.Where(f => f.Type == "position").FirstOrDefault().Value;
+            opSheet.maxInstances = 100;
+            opSheet.returnWarnings = true;
+            credentials.district = opSheet.district;
+            credentials.position = opSheet.position;
+            credentials.attributeType = "JSONELL";
+
+            EllipseWebServicesClient.ClientConversation.username = credentials.username;
+            EllipseWebServicesClient.ClientConversation.password = credentials.password;
+
+            GenericScriptService.GenericScriptDTO genericScriptDTO = new GenericScriptService.GenericScriptDTO();
+            GenericScriptService.GenericScriptSearchParam genericScriptSearchParam = new GenericScriptService.GenericScriptSearchParam();
+            try
+            {
+                proxySheet.Url = WebConfigurationManager.AppSettings["EllService"] + "GenericScriptService";
+
+                //Este parametro se utiliza saber donde esta el script con el SQL a ejecutar
+                List<GenericScriptService.Attribute> atts = new List<GenericScriptService.Attribute>();
+                GenericScriptService.Attribute att = new GenericScriptService.Attribute();
+
+                foreach (var item in value.atts)
+                {
+                    att = new GenericScriptService.Attribute();
+                    att.name = item.name;
+                    att.value = item.value;
+                    atts.Add(att);
+                }
+
+                genericScriptDTO.scriptName = value.script_name;
+                genericScriptDTO.customAttributes = atts.ToArray();
+                genericScriptSearchParam.customAttributes = atts.ToArray();
+
+                result = sendGeneric(opSheet, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
+
+                /*allAttributes = GetAllRequestParam(atts.ToArray());
+
+                scriptActionParam = GetParamValue(atts.ToArray(), "action");
+                scriptNameParam = GetParamValue(atts.ToArray(), "scriptName");
+                try
+                {
+                    timeParam = GetParamValue(result.data, "time");
+                }
+                catch (Exception)
+                {
+                    timeParam = "0";
+                }
+
+                TimeSpan span = DateTime.Now - intialDate;
+                long spanMS = (long)span.TotalMilliseconds;
+                Info(intialDate.ToString(formatDate) + ";" +
+                    scriptNameParam + ";" +
+                    scriptActionParam + ";OK;" +
+                    spanMS + ";" +
+                    GetTimeValue(timeParam) + ";" +
+                    credentials.username + ";" +
+                    credentials.district + ";" +
+                    credentials.position + ";" +
+                    allAttributes);*/
+
+            }
+            catch (Exception ex)
+            {
+                TimeSpan span = DateTime.Now - intialDate;
+                long spanMS = (long)span.TotalMilliseconds;
+                bool reintentar = Rintentar(ex.Message);
+                string codigoError = "E3";
+                if (reintentar) codigoError = "EX";
+                Info(intialDate.ToString(formatDate) + ";generic;genericException;" + codigoError + ";0;" +
+                    spanMS + ";" +
+                    credentials.username + ";" +
+                    credentials.district + ";" +
+                    opSheet.position + ";" +
+                    ex.Message + ";\n" + ex.StackTrace);
+                if (reintentar)
+                {
+                    intialDate = DateTime.Now;
+                    try
+                    {
+                        result = sendGeneric(opSheet, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
+                        if (allAttributes.Length > MAX_LONG_RESPONSE)
+                        {
+                            allAttributes = allAttributes.Substring(0, MAX_LONG_RESPONSE) + "...";
+                        }
+                        span = DateTime.Now - intialDate;
+                        spanMS = (long)span.TotalMilliseconds;
+                        Info(intialDate.ToString(formatDate) + ";generic;genericRetry;OR;" +
+                            spanMS + ";0;" +
+                            credentials.username + ";" +
+                            credentials.district + ";" +
+                            opSheet.position + ";" +
+                            allAttributes + ";" + ex.Message);
+                    }
+                    catch (Exception ex2)
+                    {
+                        span = DateTime.Now - intialDate;
+                        spanMS = (long)span.TotalMilliseconds;
+                        Info(intialDate.ToString(formatDate) + ";generic;genericRetry;ER;" +
+                            spanMS + ";0;" +
+                            credentials.username + ";" +
+                            credentials.district + ";" +
+                            opSheet.position + ";" +
+                            allAttributes + ";" + ex2.Message + "\n" + ex2.StackTrace);
+
+                        result.message = ex2.Message;
+                        result.data = new List<Util.EllRow>();
+                        result.success = false;
+                    }
+                }
+                else
+                {
+                    result.message = ex.Message;
+                    result.data = new List<Util.EllRow>();
+                    result.success = false;
+                }
+            }
+            proxySheet.Abort();
+            proxySheet.Dispose();
+            return result;
+        }
+
+        [Authorize]
+        [HttpPost]
+        [Route("api/values/genericSimple")]
+        public JObject genericSimple([FromBody] HttpRequestMessage value2)
+        {
+            DateTime intialDate = DateTime.Now;
+            string value = GetRequestBody();
+            string allAttributes = "";
+            string actionPparam = "";
+            string scriptNameParam = "";
+            JObject json = null;
+
+            Credentials credentials = new Credentials();
+            var identity = (ClaimsIdentity)User.Identity;
+
+            IEnumerable<Claim> claims = identity.Claims.ToList();
+            GenericScriptService.OperationContext opSheet = new GenericScriptService.OperationContext();
+            Util.HttpResponse<List<Util.EllRow>> result = new Util.HttpResponse<List<Util.EllRow>>();
+            List<Util.EllRow> data = new List<Util.EllRow>();
+            List<Util.Attribute> dataitem = new List<Util.Attribute>();
+            GenericScriptService.GenericScriptService proxySheet = new GenericScriptService.GenericScriptService();
+
+            credentials.username = claims.Where(f => f.Type == "username").FirstOrDefault().Value;
+            credentials.password = claims.Where(f => f.Type == "pwd").FirstOrDefault().Value;
+            opSheet.district = claims.Where(f => f.Type == "district").FirstOrDefault().Value;
+            opSheet.position = claims.Where(f => f.Type == "position").FirstOrDefault().Value;
+            opSheet.maxInstances = 100;
+            opSheet.returnWarnings = true;
+            credentials.district = opSheet.district;
+            credentials.position = opSheet.position;
+            credentials.attributeType = "JSON";
+            EllipseWebServicesClient.ClientConversation.username = credentials.username;
+            EllipseWebServicesClient.ClientConversation.password = credentials.password;
+
+            GenericScriptService.GenericScriptDTO genericScriptDTO = new GenericScriptService.GenericScriptDTO();
+            GenericScriptService.GenericScriptSearchParam genericScriptSearchParam = new GenericScriptService.GenericScriptSearchParam();
+
+            try
+            {
+                proxySheet.Url = WebConfigurationManager.AppSettings["EllService"] + "GenericScriptService";
+                JObject inputJson = JObject.Parse(value);
+                List<GenericScriptService.Attribute> atts = ConvertParamsToEllipse(inputJson);
+                allAttributes = value;
+
+                genericScriptDTO.customAttributes = atts.ToArray();
+                genericScriptSearchParam.customAttributes = atts.ToArray();
+
+                actionPparam = GetParamValue(inputJson, "action");
+                scriptNameParam = GetParamValue(inputJson, "scriptName");
+
+                result = sendGeneric(opSheet, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
+
+                if (result.data[0].atts[0].name.ToLower().Contains("json"))
+                {
+                    json = JObject.Parse(result.data[0].atts[0].value);
+                }
+            }
+            catch (Exception ex)
+            {
+                TimeSpan span = DateTime.Now - intialDate;
+                long spanMS = (long)span.TotalMilliseconds;
+                Info(intialDate.ToString(formatDate) + ";" + scriptNameParam + ";" + actionPparam + ";E6;" +
+                    spanMS + ";0;" +
+                    credentials.username + ";" +
+                    credentials.district + ";" +
+                    opSheet.position + ";" +
+                    allAttributes + ";" + ex.Message + "\n" + ex.StackTrace);
+
+                json = JObject.FromObject(new
+                {
+                    error = "Error inesperado: " + ex.Message
+                });
+            }
+
+            proxySheet.Abort();
+            proxySheet.Dispose();
+            return json;//new HttpResponseMessage();
+        }
+
+        private void BuildRequestInfo(Util.HttpResponse<List<Util.EllRow>> result, DateTime intialDate, Credentials credentials, String allAttributes)
+        {
+            string actionPparam = credentials.actionName;
+            string scriptNameParam = credentials.scriptName;
+            string time = "";
+
+            if (allAttributes.Length > MAX_LONG_RESPONSE)
+            {
+                allAttributes = allAttributes.Substring(0, MAX_LONG_RESPONSE);
+            }
+
+            try
+            {
+                time = GetParamValue(result.data, "time");
+            }
+            catch (Exception)
+            {
+                time = "0";
+            }
+
+            TimeSpan span = DateTime.Now - intialDate;
+            long spanMS = (long)span.TotalMilliseconds;
+            Info(intialDate.ToString(formatDate) + ";" + scriptNameParam + ";" + actionPparam + ";OK;" +
+                spanMS + ";" + GetTimeValue(time) + ";" +
+                credentials.username + ";" +
+                credentials.district + ";" +
+                credentials.position + ";" +
+                allAttributes);
+        }
+
         [AllowAnonymous]
         [HttpPost]
         [Route("api/values/monitor")]
         public JObject monitor([FromBody] JObject data)
         {
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             DateTime intialDate = DateTime.Now;
             string mensaje = "";
             string serverTime = "";
             string timeParam = "";
-            string scriptActionParam = "";
-            string scriptNameParam = "";
             string sql = "";
 
             Credentials credentials = new Credentials();
@@ -103,6 +353,8 @@ namespace MatrizRiesgos.Controllers
             credentials.password = WebConfigurationManager.AppSettings["EllipsePassword"];
             credentials.district = WebConfigurationManager.AppSettings["EllipseDistrict"];
             credentials.position = WebConfigurationManager.AppSettings["EllipsePosition"];
+            credentials.attributeType = "XML";
+
             OperationContext oc = new OperationContext();
             oc.district = credentials.district;
             oc.position = credentials.position;
@@ -123,16 +375,19 @@ namespace MatrizRiesgos.Controllers
             
             try
             {
-                string allAttributes = GetAllRequestParam(genericScriptDTO.customAttributes);
+                //string allAttributes = GetAllRequestParam(genericScriptDTO.customAttributes);
                 Util.HttpResponse<List<Util.EllRow>> response = sendGeneric(oc, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
 
-                allAttributes = GetAllRequestParam(genericScriptDTO.customAttributes);
-
-                scriptActionParam = GetParamValue(genericScriptDTO.customAttributes, "action");
+                /*scriptActionParam = GetParamValue(genericScriptDTO.customAttributes, "action");
                 scriptNameParam = GetParamValue(genericScriptDTO.customAttributes, "scriptName");
+
                 try
                 {
-                    timeParam = GetParamValue(response.data, "time");
+                    if (response.data[0].atts[0].name.ToLower().Contains("json"))
+                    {
+                        JObject json = JObject.Parse(response.data[0].atts[0].value);
+                        timeParam = GetParamValue(json, "time");
+                    }
                 }
                 catch (Exception)
                 {
@@ -149,7 +404,7 @@ namespace MatrizRiesgos.Controllers
                     credentials.username + ";" +
                     credentials.district + ";" +
                     credentials.position + ";" +
-                    allAttributes);
+                    allAttributes);*/
 
 
                 //Recibir el response: IF code == 200 
@@ -183,6 +438,15 @@ namespace MatrizRiesgos.Controllers
                     mensaje = mensaje + "ORACLETIME-";
                     sql = "select table_desc, last_mod_date, last_mod_time from ELLIPSE.msf010 where table_type = 'HOST' and table_code = 'REPL'";
                     Dictionary<int, Dictionary<string, object>> dataQuery = conn.GetQueryResultSet(sql);
+                    if (dataQuery.Count() == 0)
+                    {
+                        return JObject.FromObject(new
+                        {
+                            code = "501",
+                            menssage = "NO EXISTEN REGISTROS EN LA TABLA MSF010 TABLE_CODE[HOST] TABLE_TYPE[REPL]"
+                        });
+                    }
+
                     string lastModDate = dataQuery[0]["LAST_MOD_DATE"].ToString();
                     string lastModtime = dataQuery[0]["LAST_MOD_TIME"].ToString();
 
@@ -198,7 +462,7 @@ namespace MatrizRiesgos.Controllers
                     });
                 }
                 //responseTime = serverTime – lastModDate / time
-                TimeSpan span = replDateTime - serverDateTime;
+                TimeSpan span = serverDateTime - replDateTime;
 
                 //Llamar al servicio IMO_STATUS_MSF010 usando el request del punto 6
                 string responseTime = Math.Abs(span.TotalSeconds).ToString();
@@ -210,22 +474,26 @@ namespace MatrizRiesgos.Controllers
                     CreateAttribute("action","IMO_ALARMA_MSF010"),
                     CreateAttribute("responseTime",Math.Abs(span.TotalSeconds).ToString())
                 };
-                
-                sendGeneric(oc, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
+                genericScriptDTO.customAttributes = genericScriptSearchParam.customAttributes;
+                response = sendGeneric(oc, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
 
-                allAttributes = GetAllRequestParam(genericScriptDTO.customAttributes);
+                /*allAttributes = GetAllRequestParam(genericScriptDTO.customAttributes);
                 scriptActionParam = GetParamValue(genericScriptDTO.customAttributes, "action");
-                scriptNameParam = GetParamValue(genericScriptDTO.customAttributes, "scriptName");
+                scriptNameParam = GetParamValue(genericScriptDTO.customAttributes, "scriptName");*/
                 try
                 {
-                    timeParam = GetParamValue(response.data, "time");
+                    if (response.data[0].atts[0].name.ToLower().Contains("json"))
+                    {
+                        JObject json = JObject.Parse(response.data[0].atts[0].value);
+                        timeParam = GetParamValue(json, "time");
+                    }
                 }
                 catch (Exception)
                 {
                     timeParam = "0";
                 }
 
-                TimeSpan span3 = DateTime.Now - intialDate;
+                /*TimeSpan span3 = DateTime.Now - intialDate;
                 long spanMS3 = (long)span3.TotalMilliseconds;
                 Info(intialDate.ToString(formatDate) + ";" +
                     scriptNameParam + ";" +
@@ -235,7 +503,7 @@ namespace MatrizRiesgos.Controllers
                     credentials.username + ";" +
                     credentials.district + ";" +
                     credentials.position + ";" +
-                    allAttributes);
+                    allAttributes);*/
 
 
                 //POWER BI
@@ -298,24 +566,6 @@ namespace MatrizRiesgos.Controllers
 
         }
 
-        public void sendStatisticToPowerBI(JObject json)
-        {
-            ConnectionPowerBI powerBi = new ConnectionPowerBI();
-            powerBi.Method = "POST";
-            powerBi.Url = WebConfigurationManager.AppSettings["DatasetPBI"];
-
-            powerBi.sendNotification("[" + json.ToString() + "]");
-        }
-        
-        public GenericScriptService.Attribute CreateAttribute(string name, string value)
-        {
-            GenericScriptService.Attribute att = new GenericScriptService.Attribute();
-            att.name = name;
-            att.value = value;
-
-            return att;
-        }
-
         [AllowAnonymous]
         [HttpPost]
         [Route("api/values/districts")]
@@ -327,7 +577,7 @@ namespace MatrizRiesgos.Controllers
             credentials.username = data.GetValue("username").ToString();
             credentials.password = data.GetValue("pwd").ToString();
 
-            
+
 
             if (string.IsNullOrEmpty(WebConfigurationManager.AppSettings["EllipseDistrict"]))
             {
@@ -346,69 +596,6 @@ namespace MatrizRiesgos.Controllers
 
         }
 
-        private HttpResponse<List<EllRow>> GetDefaultDistrict(Credentials credentials)
-        {
-            DateTime intialDate = DateTime.Now;
-
-            List<Util.EllRow> data = new List<Util.EllRow>();
-            Util.EllRow row = new Util.EllRow();
-            row.atts = new List<Util.Attribute>();
-
-            AuthenticatorService.AuthenticatorService authService = new AuthenticatorService.AuthenticatorService();
-            authService.Url = WebConfigurationManager.AppSettings["EllService"] + "AuthenticatorService";
-            AuthenticatorService.OperationContext oc = new AuthenticatorService.OperationContext();
-
-            EllipseWebServicesClient.ClientConversation.username = credentials.username;
-            EllipseWebServicesClient.ClientConversation.password = credentials.password;
-
-            try
-            {
-                AuthenticatorService.NameValuePair[] pairs = authService.getDistricts(oc);
-                foreach (AuthenticatorService.NameValuePair pair in pairs)
-                {
-                    row.atts.Add(new Util.Attribute() { name = pair.name, value = pair.value });
-                }
-                data.Add(row);
-                authService.Dispose();
-                return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "success", redirect = false, success = true };
-            }
-            catch (Exception ex)
-            {
-                TimeSpan span = DateTime.Now - intialDate;
-                long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";MatrizApi;GetDefaultDistrict;E1;" +
-                    spanMS + ";0;" +
-                    credentials.username + ";" +
-                    "<dstr>" + ";" +
-                    "<pos>" + ";" +
-                    ex.Message + ";\n" + ex.StackTrace);
-                row.atts.Add(new Util.Attribute() { name = "ERROR", value = "ERROR AL EJECUTAR EL PROCEDIMIENTO" });
-                data.Add(row);
-                return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "no success", redirect = false, success = false };
-            }
-        }
-
-        public Util.HttpResponse<List<Util.EllRow>> GetDefaultDistrictByGroovy(string userToFind, Credentials credentials)
-        {
-            DateTime intialDate = DateTime.Now;
-            List<GenericScriptService.Attribute> atts = new List<GenericScriptService.Attribute>();
-            GenericScriptService.Attribute att = new GenericScriptService.Attribute();
-            att.name = "user";
-            att.value = userToFind.ToUpper();
-            atts.Add(att);
-
-            GenericScriptService.Attribute att2 = new GenericScriptService.Attribute();
-            att2.name = "action";
-            att2.value = "DISTRITOS_USUARIO";
-            atts.Add(att2);
-
-            GenericScriptService.Attribute att3 = new GenericScriptService.Attribute();
-            att3.name = "scriptName";
-            att3.value = "coemdr";
-            atts.Add(att3);
-
-            return execute(atts, credentials);
-        }
 
         [AllowAnonymous]
         [HttpGet]
@@ -467,6 +654,193 @@ namespace MatrizRiesgos.Controllers
             return httpResponseMessage;
         }
 
+
+        private Util.HttpResponse<List<Util.EllRow>> sendGeneric(GenericScriptService.OperationContext opSheet,
+            GenericScriptService.GenericScriptService proxySheet,
+            GenericScriptService.GenericScriptSearchParam genericScriptSearchParam,
+            GenericScriptService.GenericScriptDTO genericScriptDTO,
+            Credentials credentials)
+        {
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
+            string errors = "";
+            string scriptNameParam = GetParamValue(genericScriptSearchParam, "scriptName");
+            string scriptActionParam = GetParamValue(genericScriptSearchParam, "action");
+
+            EllipseWebServicesClient.ClientConversation.username = credentials.username;
+            EllipseWebServicesClient.ClientConversation.password = credentials.password;
+
+            DateTime intialDate = DateTime.Now;
+            GenericScriptService.GenericScriptServiceResult[] genericScriptServiceResults = proxySheet.executeForCollection(opSheet, genericScriptSearchParam, genericScriptDTO);
+            Util.HttpResponse<List<Util.EllRow>> result = new Util.HttpResponse<List<Util.EllRow>>();
+            List<Util.EllRow> data = new List<Util.EllRow>();
+            //bool redirect = false;
+
+            foreach (GenericScriptService.GenericScriptServiceResult genericScriptServiceResult in genericScriptServiceResults)
+            {
+                var row = new Util.EllRow();
+                row.atts = new List<Util.Attribute>();
+                data.Add(row);
+
+                foreach (Error error in genericScriptServiceResult.errors)
+                {
+                    errors = errors + error.messageText + " - ";
+                }
+
+                if (genericScriptServiceResult.errors.Length == 0)
+                {
+                    GenericScriptService.GenericScriptDTO dto = genericScriptServiceResult.genericScriptDTO;
+
+                    foreach (GenericScriptService.Attribute attribute in dto.customAttributes)
+                    {
+                        row.atts.Add(new Util.Attribute() { name = attribute.name, value = attribute.value });
+                    }
+                }
+                else
+                {
+                    row.atts.Add(new Util.Attribute() { name = "type", value = "E" });
+                    row.atts.Add(new Util.Attribute() { name = "description", value = genericScriptServiceResult.errors[0].messageText });
+                    //if (genericScriptServiceResult.errors[0].messageText == "USUARIO NO TIENE PRIVILEGIOS A LA MATRIZ DE RIESGOS") { redirect = true; }
+                }
+            }
+
+            //capturar error
+            if (data.Count > 0)
+            {
+                if (data[0].atts.Count > 0)
+                {
+                    string timeParam = GetParamValue(genericScriptServiceResults, "time");
+
+                    Info(intialDate.ToString(formatDate) + ";" + scriptNameParam + ";" + scriptActionParam + ";OK;" +
+                        "0;" + GetTimeValue(timeParam) + ";" +
+                        credentials.username + ";" +
+                        credentials.district + ";" +
+                        opSheet.position + ";" +
+                        " " + data[0].atts[0].value);
+
+                    if (data[0].atts[0].name == "type" && data[0].atts[0].value == "E")
+                    {
+                        throw new Exception(data[0].atts[1].value);
+                    }
+                    if (data[0].atts[0].name == "error")
+                    {
+                        throw new Exception(data[0].atts[0].value);
+                    }
+                }
+            }
+
+            result.redirect = null;
+            result.message = "Generic se ejecuto Correctamente";
+            result.data = data;
+            result.success = true;
+
+            credentials.scriptName = scriptNameParam;
+            credentials.actionName = scriptActionParam;
+            if (credentials.attributeType.Equals("JSON"))
+                BuildRequestInfo(result, intialDate, credentials, GetRequestBody());
+            else
+                BuildRequestInfo(result, intialDate, credentials, GetAllRequestParam(genericScriptDTO.customAttributes.ToArray()));
+            return result;
+        }
+
+        private Util.HttpResponse<List<Util.EllRow>> execute(List<GenericScriptService.Attribute> atts, Credentials credentials)
+        {
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+            DateTime intialDate = DateTime.Now;
+
+            List<Util.EllRow> data = new List<Util.EllRow>();
+            Util.EllRow row = new Util.EllRow();
+            row.atts = new List<Util.Attribute>();
+
+            GenericScriptService.OperationContext opSheet = new GenericScriptService.OperationContext
+            {
+                district = credentials.district,
+                position = credentials.position,
+                maxInstances = 100,
+                returnWarnings = true
+            };
+
+            ClientConversation.username = credentials.username;
+            ClientConversation.password = credentials.password;
+            string URL = WebConfigurationManager.AppSettings["EllService"];
+            GenericScriptService.GenericScriptService proxySheet = new GenericScriptService.GenericScriptService
+            {
+                Url = URL + "GenericScriptService"
+            };
+            try
+            {
+                GenericScriptDTO genericScriptDTO = new GenericScriptDTO
+                {
+                    scriptName = "coemdr",
+                    customAttributes = atts.ToArray()
+                };
+                GenericScriptSearchParam genericScriptSearchParam = new GenericScriptSearchParam
+                {
+                    customAttributes = atts.ToArray()
+                };
+                try
+                {
+
+                    GenericScriptServiceResult[] results = proxySheet.executeForCollection(opSheet, genericScriptSearchParam, genericScriptDTO);
+                    string errors = "";
+                    foreach (GenericScriptServiceResult genericScriptServiceResult in results)
+                    {
+
+                        String name = genericScriptServiceResult.genericScriptDTO.customAttributes[0].value;
+                        String value = genericScriptServiceResult.genericScriptDTO.customAttributes[1].value;
+
+                        row.atts.Add(new Util.Attribute() { name = name, value = value });
+
+                        foreach (Error error in genericScriptServiceResult.errors)
+                        {
+                            errors = errors + error.messageText + " - ";
+                        }
+
+                    }
+
+                    TimeSpan span = DateTime.Now - intialDate;
+                    long spanMS = (long)span.TotalMilliseconds;
+                    Info(intialDate.ToString(formatDate) + ";execute;OK;" +
+                        spanMS + ";0;" +
+                        credentials.username + ";" +
+                        credentials.district + ";" +
+                        opSheet.position + ";" +
+                        "Errors=" + errors);
+
+                    data.Add(row);
+                    return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "success", redirect = false, success = true };
+                }
+                catch (Exception ex)
+                {
+                    TimeSpan span = DateTime.Now - intialDate;
+                    long spanMS = (long)span.TotalMilliseconds;
+                    Info(intialDate.ToString(formatDate) + ";execute;E7;" +
+                        spanMS + ";0;" +
+                        credentials.username + ";" +
+                        credentials.district + ";" +
+                        credentials.position + ";" +
+                        ex.Message + ";\n" + ex.StackTrace);
+                    row.atts.Add(new Util.Attribute() { name = "ERROR", value = "ERROR AL EJECUTAR EL PROCEDIMIENTO " + ex.Message });
+                    data.Add(row);
+                    return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "no success", redirect = false, success = false };
+                }
+            }
+            catch (Exception ex)
+            {
+                TimeSpan span = DateTime.Now - intialDate;
+                long spanMS = (long)span.TotalMilliseconds;
+                Info(intialDate.ToString(formatDate) + ";execute;E8;" +
+                    spanMS + ";0;" +
+                    credentials.username + ";" +
+                    credentials.district + ";" +
+                    credentials.position + ";" +
+                    ex.Message + ";\n" + ex.StackTrace);
+                row.atts.Add(new Util.Attribute() { name = "ERROR", value = "ERROR AL EJECUTAR EL PROCEDIMIENTO" });
+                data.Add(row);
+                return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "no success", redirect = false, success = false };
+            }
+        }
+
         [AllowAnonymous]
         [HttpPost]
         [Route("api/values/positions")]
@@ -493,6 +867,84 @@ namespace MatrizRiesgos.Controllers
             }
         }
 
+        public void sendStatisticToPowerBI(JObject json)
+        {
+            ConnectionPowerBI powerBi = new ConnectionPowerBI();
+            powerBi.Method = "POST";
+            powerBi.Url = WebConfigurationManager.AppSettings["DatasetPBI"];
+
+            powerBi.sendNotification("[" + json.ToString() + "]");
+        }
+        public GenericScriptService.Attribute CreateAttribute(string name, string value)
+        {
+            GenericScriptService.Attribute att = new GenericScriptService.Attribute();
+            att.name = name;
+            att.value = value;
+
+            return att;
+        }
+        private HttpResponse<List<EllRow>> GetDefaultDistrict(Credentials credentials)
+        {
+            DateTime intialDate = DateTime.Now;
+
+            List<Util.EllRow> data = new List<Util.EllRow>();
+            Util.EllRow row = new Util.EllRow();
+            row.atts = new List<Util.Attribute>();
+
+            AuthenticatorService.AuthenticatorService authService = new AuthenticatorService.AuthenticatorService();
+            authService.Url = WebConfigurationManager.AppSettings["EllService"] + "AuthenticatorService";
+            AuthenticatorService.OperationContext oc = new AuthenticatorService.OperationContext();
+
+            EllipseWebServicesClient.ClientConversation.username = credentials.username;
+            EllipseWebServicesClient.ClientConversation.password = credentials.password;
+
+            try
+            {
+                AuthenticatorService.NameValuePair[] pairs = authService.getDistricts(oc);
+                foreach (AuthenticatorService.NameValuePair pair in pairs)
+                {
+                    row.atts.Add(new Util.Attribute() { name = pair.name, value = pair.value });
+                }
+                data.Add(row);
+                authService.Dispose();
+                return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "success", redirect = false, success = true };
+            }
+            catch (Exception ex)
+            {
+                TimeSpan span = DateTime.Now - intialDate;
+                long spanMS = (long)span.TotalMilliseconds;
+                Info(intialDate.ToString(formatDate) + ";MatrizApi;GetDefaultDistrict;E1;" +
+                    spanMS + ";0;" +
+                    credentials.username + ";" +
+                    "<dstr>" + ";" +
+                    "<pos>" + ";" +
+                    ex.Message + ";\n" + ex.StackTrace);
+                row.atts.Add(new Util.Attribute() { name = "ERROR", value = "ERROR AL EJECUTAR EL PROCEDIMIENTO" });
+                data.Add(row);
+                return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "no success", redirect = false, success = false };
+            }
+        }
+        public Util.HttpResponse<List<Util.EllRow>> GetDefaultDistrictByGroovy(string userToFind, Credentials credentials)
+        {
+            DateTime intialDate = DateTime.Now;
+            List<GenericScriptService.Attribute> atts = new List<GenericScriptService.Attribute>();
+            GenericScriptService.Attribute att = new GenericScriptService.Attribute();
+            att.name = "user";
+            att.value = userToFind.ToUpper();
+            atts.Add(att);
+
+            GenericScriptService.Attribute att2 = new GenericScriptService.Attribute();
+            att2.name = "action";
+            att2.value = "DISTRITOS_USUARIO";
+            atts.Add(att2);
+
+            GenericScriptService.Attribute att3 = new GenericScriptService.Attribute();
+            att3.name = "scriptName";
+            att3.value = "coemdr";
+            atts.Add(att3);
+
+            return execute(atts, credentials);
+        }
         public Util.HttpResponse<List<Util.EllRow>> GetDefaultPosition(Credentials credentials)
         {
             DateTime intialDate = DateTime.Now;
@@ -561,7 +1013,6 @@ namespace MatrizRiesgos.Controllers
 
             return execute(atts, credentials);
         }
-
         public Util.HttpResponse<List<Util.EllRow>> GetAttachmentByGroovy(string primaryKey, string blobUUID, string scriptName, Credentials credentials)
         {
             List<GenericScriptService.Attribute> atts = new List<GenericScriptService.Attribute>();
@@ -587,148 +1038,6 @@ namespace MatrizRiesgos.Controllers
 
             return execute(atts, credentials);
         }
-
-        [Authorize]
-        [HttpPost]
-        [Route("api/values/generic")]
-        public Util.HttpResponse<List<Util.EllRow>> generic([FromBody] Util.BodyParams value)
-        {
-            DateTime intialDate = DateTime.Now;
-            Credentials credentials = new Credentials();
-            var identity = (ClaimsIdentity)User.Identity;
-            string allAttributes = "";
-            string scriptActionParam = "";
-            string scriptNameParam = "";
-            string timeParam = "";
-
-            IEnumerable<Claim> claims = identity.Claims.ToList();
-            GenericScriptService.OperationContext opSheet = new GenericScriptService.OperationContext();
-            Util.HttpResponse<List<Util.EllRow>> result = new Util.HttpResponse<List<Util.EllRow>>();
-            List<Util.EllRow> data = new List<Util.EllRow>();
-            List<Util.Attribute> dataitem = new List<Util.Attribute>();
-            GenericScriptService.GenericScriptService proxySheet = new GenericScriptService.GenericScriptService();
-
-            credentials.username = claims.Where(f => f.Type == "username").FirstOrDefault().Value;
-            credentials.password = claims.Where(f => f.Type == "pwd").FirstOrDefault().Value;
-            opSheet.district = claims.Where(f => f.Type == "district").FirstOrDefault().Value;
-            opSheet.position = claims.Where(f => f.Type == "position").FirstOrDefault().Value;
-            opSheet.maxInstances = 100;
-            opSheet.returnWarnings = true;
-            credentials.district = opSheet.district;
-            credentials.position = opSheet.position;
-
-            EllipseWebServicesClient.ClientConversation.username = credentials.username;
-            EllipseWebServicesClient.ClientConversation.password = credentials.password;
-
-            GenericScriptService.GenericScriptDTO genericScriptDTO = new GenericScriptService.GenericScriptDTO();
-            GenericScriptService.GenericScriptSearchParam genericScriptSearchParam = new GenericScriptService.GenericScriptSearchParam();
-            try
-            {
-                proxySheet.Url = WebConfigurationManager.AppSettings["EllService"] + "GenericScriptService";
-
-                //Este parametro se utiliza saber donde esta el script con el SQL a ejecutar
-                List<GenericScriptService.Attribute> atts = new List<GenericScriptService.Attribute>();
-                GenericScriptService.Attribute att = new GenericScriptService.Attribute();
-
-                foreach (var item in value.atts)
-                {
-                    att = new GenericScriptService.Attribute();
-                    att.name = item.name;
-                    att.value = item.value;
-                    atts.Add(att);
-                }
-
-                genericScriptDTO.scriptName = value.script_name;
-                genericScriptDTO.customAttributes = atts.ToArray();
-                genericScriptSearchParam.customAttributes = atts.ToArray();
-
-                result = sendGeneric(opSheet, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
-
-                allAttributes = GetAllRequestParam(atts.ToArray());
-
-                scriptActionParam = GetParamValue(atts.ToArray(), "action");
-                scriptNameParam = GetParamValue(atts.ToArray(), "scriptName");
-                try
-                {
-                    timeParam = GetParamValue(result.data, "time");
-                } catch (Exception)
-                {
-                    timeParam = "0";
-                }
-
-                TimeSpan span = DateTime.Now - intialDate;
-                long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";" + 
-                    scriptNameParam + ";" + 
-                    scriptActionParam + ";OK;" +
-                    spanMS + ";" +
-                    GetTimeValue(timeParam) + ";" +
-                    credentials.username + ";" +
-                    credentials.district + ";" +
-                    credentials.position + ";" +
-                    allAttributes);
-
-            }
-            catch (Exception ex)
-            {
-                TimeSpan span = DateTime.Now - intialDate;
-                long spanMS = (long)span.TotalMilliseconds;
-                bool reintentar = Rintentar(ex.Message);
-                string codigoError = "E3";
-                if (reintentar) codigoError = "EX";
-                Info(intialDate.ToString(formatDate) + ";generic;genericException;" + codigoError + ";0;" +
-                    spanMS + ";" +
-                    credentials.username + ";" +
-                    credentials.district + ";" +
-                    opSheet.position + ";" +
-                    ex.Message + ";\n" + ex.StackTrace);
-                if (reintentar)
-                {
-                    intialDate = DateTime.Now;
-                    try
-                    {
-                        result = sendGeneric(opSheet, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
-                        if (allAttributes.Length > MAX_LONG_RESPONSE)
-                        {
-                            allAttributes = allAttributes.Substring(0, MAX_LONG_RESPONSE) + "...";
-                        }
-                        span = DateTime.Now - intialDate;
-                        spanMS = (long)span.TotalMilliseconds;
-                        Info(intialDate.ToString(formatDate) + ";generic;genericRetry;OR;" +
-                            spanMS + ";0;" +
-                            credentials.username + ";" +
-                            credentials.district + ";" +
-                            opSheet.position + ";" +
-                            allAttributes + ";" + ex.Message);
-                    }
-                    catch (Exception ex2)
-                    {
-                        span = DateTime.Now - intialDate;
-                        spanMS = (long)span.TotalMilliseconds;
-                        Info(intialDate.ToString(formatDate) + ";generic;genericRetry;ER;" +
-                            spanMS + ";0;" +
-                            credentials.username + ";" +
-                            credentials.district + ";" +
-                            opSheet.position + ";" +
-                            allAttributes + ";" + ex2.Message + "\n" + ex2.StackTrace);
-
-                        result.message = ex2.Message;
-                        result.data = new List<Util.EllRow>();
-                        result.success = false;
-                    }
-                }
-                else
-                {
-                    result.message = ex.Message;
-                    result.data = new List<Util.EllRow>();
-                    result.success = false;
-                }
-            }
-            proxySheet.Abort();
-            proxySheet.Dispose();
-            return result;
-        }
-
         private string GetAllRequestParam(GenericScriptService.Attribute[] atts)
         {
             string allAttributes = "";
@@ -743,7 +1052,6 @@ namespace MatrizRiesgos.Controllers
 
             return allAttributes;
         }
-
         private bool Rintentar(String mensaje)
         {
             bool ok = false;
@@ -784,109 +1092,6 @@ namespace MatrizRiesgos.Controllers
             var bodyText = bodyStream.ReadToEnd();
             return bodyText;
         }
-
-        [Authorize]
-        [HttpPost]
-        [Route("api/values/genericSimple")]
-        public JObject genericSimple([FromBody] HttpRequestMessage value2)
-        {
-            DateTime intialDate = DateTime.Now;
-            string value = GetRequestBody();
-            string allAttributes = "";
-            string actionPparam = "";
-            string scriptNameParam = "";
-            string time = "";
-            Credentials credentials = new Credentials();
-            var identity = (ClaimsIdentity)User.Identity;
-            JObject json = null;
-
-            IEnumerable<Claim> claims = identity.Claims.ToList();
-            GenericScriptService.OperationContext opSheet = new GenericScriptService.OperationContext();
-            Util.HttpResponse<List<Util.EllRow>> result = new Util.HttpResponse<List<Util.EllRow>>();
-            List<Util.EllRow> data = new List<Util.EllRow>();
-            List<Util.Attribute> dataitem = new List<Util.Attribute>();
-            GenericScriptService.GenericScriptService proxySheet = new GenericScriptService.GenericScriptService();
-
-            credentials.username = claims.Where(f => f.Type == "username").FirstOrDefault().Value;
-            credentials.password = claims.Where(f => f.Type == "pwd").FirstOrDefault().Value;
-            opSheet.district = claims.Where(f => f.Type == "district").FirstOrDefault().Value;
-            opSheet.position = claims.Where(f => f.Type == "position").FirstOrDefault().Value;
-            opSheet.maxInstances = 100;
-            opSheet.returnWarnings = true;
-            credentials.district = opSheet.district;
-            credentials.position = opSheet.position;
-
-            EllipseWebServicesClient.ClientConversation.username = credentials.username;
-            EllipseWebServicesClient.ClientConversation.password = credentials.password;
-
-            GenericScriptService.GenericScriptDTO genericScriptDTO = new GenericScriptService.GenericScriptDTO();
-            GenericScriptService.GenericScriptSearchParam genericScriptSearchParam = new GenericScriptService.GenericScriptSearchParam();
-
-            try
-            {
-                proxySheet.Url = WebConfigurationManager.AppSettings["EllService"] + "GenericScriptService";
-                JObject inputJson = JObject.Parse(value);
-                List<GenericScriptService.Attribute> atts = ConvertParamsToEllipse(inputJson);
-                allAttributes = value;
-
-                genericScriptDTO.customAttributes = atts.ToArray();
-                genericScriptSearchParam.customAttributes = atts.ToArray();
-
-                actionPparam = GetParamValue(inputJson, "action");
-                scriptNameParam = GetParamValue(inputJson, "scriptName");
-
-                result = sendGeneric(opSheet, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
-                string resultado = "[RESULTADO]";
-                if (result.data[0].atts[0].name.ToLower().Contains("json"))
-                {
-                    json = JObject.Parse(result.data[0].atts[0].value);
-                }
-                else
-                {
-                    resultado = "Groovy no contiene atributo de salida json esperado";
-                    json = JObject.FromObject(new
-                    {
-                        error = resultado
-                    });
-                }
-                if (allAttributes.Length > MAX_LONG_RESPONSE)
-                {
-                    allAttributes = allAttributes.Substring(0, MAX_LONG_RESPONSE);
-                }
-                
-                time = GetParamValue(json, "time");
-
-                TimeSpan span = DateTime.Now - intialDate;
-                long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";" + scriptNameParam + ";" + actionPparam + ";OK;" +
-                    spanMS + ";" + GetTimeValue(time) + ";" +
-                    credentials.username + ";" +
-                    credentials.district + ";" +
-                    opSheet.position + ";" +
-                    allAttributes + ";" + resultado);
-            }
-            catch (Exception ex)
-            {
-                TimeSpan span = DateTime.Now - intialDate;
-                long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";" + scriptNameParam + ";" + actionPparam + ";E6;" +
-                    spanMS + ";0;" +
-                    credentials.username + ";" +
-                    credentials.district + ";" +
-                    opSheet.position + ";" +
-                    allAttributes + ";" + ex.Message + "\n" + ex.StackTrace);
-
-                json = JObject.FromObject(new
-                {
-                    error = "Error inesperado: " + ex.Message
-                });
-            }
-
-            proxySheet.Abort();
-            proxySheet.Dispose();
-            return json;//new HttpResponseMessage();
-        }
-
         private List<GenericScriptService.Attribute> ConvertParamsToEllipse(JObject json)
         {
             List<GenericScriptService.Attribute> atts = new List<GenericScriptService.Attribute>();
@@ -910,7 +1115,6 @@ namespace MatrizRiesgos.Controllers
             }
             return atts;
         }
-
         private string GetTimeValue(string timeValue)
         {
             string[] timePart= timeValue.Split(' ');
@@ -921,12 +1125,11 @@ namespace MatrizRiesgos.Controllers
                 result = number.ToString();
             } catch (Exception)
             {
-                result = "-1";
+                result = "NaN:[" + timeValue + "]";
             }
 
             return result;
         }
-
         private string GetParamValue(JObject json, string parameter)
         {
             Dictionary<string, object> dictionary = JsonConvert.DeserializeObject<Dictionary<string, object>>(json.ToString(Formatting.None));
@@ -938,7 +1141,6 @@ namespace MatrizRiesgos.Controllers
                 return "";
             }
         }
-
         private string GetParamValue(GenericScriptSearchParam paramSearch, string parameter)
         {
             try
@@ -950,7 +1152,6 @@ namespace MatrizRiesgos.Controllers
                 return "";
             }
         }
-
         private string GetParamValue(GenericScriptService.Attribute[] attributes, string parameter)
         {
             try
@@ -963,9 +1164,7 @@ namespace MatrizRiesgos.Controllers
                 return "";
             }
         }
-
-
-        private string GetParamValue(Util.Attribute[] attributes, string parameter)
+        /*private string GetParamValue(Util.Attribute[] attributes, string parameter)
         {
             try
             {
@@ -977,7 +1176,7 @@ namespace MatrizRiesgos.Controllers
                 return "";
             }
         }
-
+        */
         private string GetParamValue(List<EllRow> ellRows, string parameter)
         {
             try
@@ -995,7 +1194,6 @@ namespace MatrizRiesgos.Controllers
 
             return "";
         }
-
         private string GetParamValue(GenericScriptServiceResult[] paramResults, string parameter)
         {
             try
@@ -1020,9 +1218,7 @@ namespace MatrizRiesgos.Controllers
                 return "";
             }
         }
-        
-
-        private string GetResponseValue(GenericScriptSearchParam paramSearch, string parameter)
+        /*private string GetResponseValue(GenericScriptSearchParam paramSearch, string parameter)
         {
             try
             {
@@ -1033,8 +1229,7 @@ namespace MatrizRiesgos.Controllers
             {
                 return "";
             }
-        }
-
+        }*/
         // para escribir en el archivo
         private void Info(string text)
         {
@@ -1053,201 +1248,8 @@ namespace MatrizRiesgos.Controllers
             {
                 if (trace.Equals("Y"))
                 {
-                    log.Info(versionAPI + ";" + text);
-                    //LogManager.Flush(500);
+                    log.Info(versionAPI + ";" + text.Replace("\r\n"," ").Replace("\n"," "));
                 }
-            }
-        }
-
-        private Util.HttpResponse<List<Util.EllRow>> sendGeneric(GenericScriptService.OperationContext opSheet,
-            GenericScriptService.GenericScriptService proxySheet,
-            GenericScriptService.GenericScriptSearchParam genericScriptSearchParam,
-            GenericScriptService.GenericScriptDTO genericScriptDTO,
-            Credentials credentials)
-        {
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-
-            string errors = "";
-            string scriptNameParam = GetParamValue(genericScriptSearchParam, "scriptName");
-            string scriptActionParam = GetParamValue(genericScriptSearchParam, "action");
-
-            EllipseWebServicesClient.ClientConversation.username = credentials.username;
-            EllipseWebServicesClient.ClientConversation.password = credentials.password;
-
-            
-            DateTime intialDate = DateTime.Now;
-            GenericScriptService.GenericScriptServiceResult[] genericScriptServiceResults = proxySheet.executeForCollection(opSheet, genericScriptSearchParam, genericScriptDTO);
-            Util.HttpResponse<List<Util.EllRow>> result = new Util.HttpResponse<List<Util.EllRow>>();
-            List<Util.EllRow> data = new List<Util.EllRow>();
-            //bool redirect = false;
-
-            foreach (GenericScriptService.GenericScriptServiceResult genericScriptServiceResult in genericScriptServiceResults)
-            {
-                var row = new Util.EllRow();
-                row.atts = new List<Util.Attribute>();
-                data.Add(row);
-
-                foreach (Error error in genericScriptServiceResult.errors)
-                {
-                    errors = errors + error.messageText + " - ";
-                }
-
-                if (genericScriptServiceResult.errors.Length == 0)
-                {
-                    GenericScriptService.GenericScriptDTO dto = genericScriptServiceResult.genericScriptDTO;
-
-                    foreach (GenericScriptService.Attribute attribute in dto.customAttributes)
-                    {
-                        row.atts.Add(new Util.Attribute() { name = attribute.name, value = attribute.value });
-                    }
-                }
-                else
-                {
-                    row.atts.Add(new Util.Attribute() { name = "type", value = "E" });
-                    row.atts.Add(new Util.Attribute() { name = "description", value = genericScriptServiceResult.errors[0].messageText });
-                    //if (genericScriptServiceResult.errors[0].messageText == "USUARIO NO TIENE PRIVILEGIOS A LA MATRIZ DE RIESGOS") { redirect = true; }
-                }
-            }
-
-            //capturar error
-            if (data.Count > 0)
-            {
-                if (data[0].atts.Count > 0)
-                {
-                    string timeParam = GetParamValue(genericScriptServiceResults, "time");
-                    
-                    Info(intialDate.ToString(formatDate) + ";" + scriptNameParam + ";" + scriptActionParam + ";OK;" +
-                        "0;" + GetTimeValue(timeParam) + ";" + 
-                        credentials.username + ";" +
-                        credentials.district + ";" +
-                        opSheet.position + ";" +
-                        " " + data[0].atts[0].value);
-
-                    if (data[0].atts[0].name == "type" && data[0].atts[0].value == "E")
-                    {
-                        throw new Exception(data[0].atts[1].value);
-                    }
-                    if (data[0].atts[0].name == "error")
-                    {
-                        throw new Exception(data[0].atts[0].value);
-                    }
-                }
-            }
-
-            result.redirect = null;
-            result.message = "Generic se ejecuto Correctamente";
-            result.data = data;
-            result.success = true;
-
-            return result;
-        }
-
-        /*[Authorize(Roles = "admin")]
-        [HttpGet]
-        [HttpGet]
-        [Route("api/values/authorize")]
-        public IHttpActionResult GetForAdmin()
-        {
-            var identity = (ClaimsIdentity)User.Identity;
-            var roles = identity.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value);
-            return Ok("Hello " + identity.Name + " Role " + string.Join(",", roles.ToList()));
-        }*/
-
-        private Util.HttpResponse<List<Util.EllRow>> execute(List<GenericScriptService.Attribute> atts, Credentials credentials)
-        {
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-            DateTime intialDate = DateTime.Now;
-
-            List<Util.EllRow> data = new List<Util.EllRow>();
-            Util.EllRow row = new Util.EllRow();
-            row.atts = new List<Util.Attribute>();
-
-            GenericScriptService.OperationContext opSheet = new GenericScriptService.OperationContext
-            {
-                district = credentials.district,
-                position = credentials.position,
-                maxInstances = 100,
-                returnWarnings = true
-            };
-
-            ClientConversation.username = credentials.username;
-            ClientConversation.password = credentials.password;
-            string URL = WebConfigurationManager.AppSettings["EllService"];
-            GenericScriptService.GenericScriptService proxySheet = new GenericScriptService.GenericScriptService
-            {
-                Url = URL + "GenericScriptService"
-            };
-            try
-            {
-                GenericScriptDTO genericScriptDTO = new GenericScriptDTO
-                {
-                    scriptName = "coemdr",
-                    customAttributes = atts.ToArray()
-                };
-                GenericScriptSearchParam genericScriptSearchParam = new GenericScriptSearchParam
-                {
-                    customAttributes = atts.ToArray()
-                };
-                try
-                {
-
-                    GenericScriptServiceResult[] results = proxySheet.executeForCollection(opSheet, genericScriptSearchParam, genericScriptDTO);
-                    string errors = "";
-                    foreach (GenericScriptServiceResult genericScriptServiceResult in results)
-                    {
-                        
-                        String name = genericScriptServiceResult.genericScriptDTO.customAttributes[0].value;
-                        String value = genericScriptServiceResult.genericScriptDTO.customAttributes[1].value;
-
-                        row.atts.Add(new Util.Attribute() { name = name, value = value });
-
-                        foreach (Error error in genericScriptServiceResult.errors)
-                        {
-                            errors = errors + error.messageText + " - ";
-                        }
-
-                    }
-
-                    TimeSpan span = DateTime.Now - intialDate;
-                    long spanMS = (long)span.TotalMilliseconds;
-                    Info(intialDate.ToString(formatDate) + ";execute;OK;" +
-                        spanMS + ";0;" +
-                        credentials.username + ";" +
-                        credentials.district + ";" +
-                        opSheet.position + ";" +
-                        "Errors=" + errors);
-
-                    data.Add(row);
-                    return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "success", redirect = false, success = true };
-                }
-                catch (Exception ex)
-                {
-                    TimeSpan span = DateTime.Now - intialDate;
-                    long spanMS = (long)span.TotalMilliseconds;
-                    Info(intialDate.ToString(formatDate) + ";execute;E7;" +
-                        spanMS + ";0;" +
-                        credentials.username + ";" +
-                        credentials.district + ";" +
-                        credentials.position + ";" +
-                        ex.Message + ";\n" + ex.StackTrace);
-                    row.atts.Add(new Util.Attribute() { name = "ERROR", value = "ERROR AL EJECUTAR EL PROCEDIMIENTO " + ex.Message });
-                    data.Add(row);
-                    return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "no success", redirect = false, success = false };
-                }
-            }
-            catch (Exception ex)
-            {
-                TimeSpan span = DateTime.Now - intialDate;
-                long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";execute;E8;" +
-                    spanMS + ";0;" +
-                    credentials.username + ";" +
-                    credentials.district + ";" +
-                    credentials.position + ";" +
-                    ex.Message + ";\n" + ex.StackTrace);
-                row.atts.Add(new Util.Attribute() { name = "ERROR", value = "ERROR AL EJECUTAR EL PROCEDIMIENTO" });
-                data.Add(row);
-                return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "no success", redirect = false, success = false };
             }
         }
 
