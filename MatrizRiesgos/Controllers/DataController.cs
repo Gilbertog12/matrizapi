@@ -58,7 +58,7 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.15";
+        readonly string versionAPI = "v2.16";
         //private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         Logger log = NLog.LogManager.GetCurrentClassLogger();
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
@@ -140,31 +140,6 @@ namespace MatrizRiesgos.Controllers
                 genericScriptSearchParam.customAttributes = atts.ToArray();
 
                 result = sendGeneric(opSheet, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
-
-                /*allAttributes = GetAllRequestParam(atts.ToArray());
-
-                scriptActionParam = GetParamValue(atts.ToArray(), "action");
-                scriptNameParam = GetParamValue(atts.ToArray(), "scriptName");
-                try
-                {
-                    timeParam = GetParamValue(result.data, "time");
-                }
-                catch (Exception)
-                {
-                    timeParam = "0";
-                }
-
-                TimeSpan span = DateTime.Now - intialDate;
-                long spanMS = (long)span.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";" +
-                    scriptNameParam + ";" +
-                    scriptActionParam + ";OK;" +
-                    spanMS + ";" +
-                    GetTimeValue(timeParam) + ";" +
-                    credentials.username + ";" +
-                    credentials.district + ";" +
-                    credentials.position + ";" +
-                    allAttributes);*/
 
             }
             catch (Exception ex)
@@ -342,11 +317,17 @@ namespace MatrizRiesgos.Controllers
         public JObject monitor([FromBody] JObject data)
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+            Util.HttpResponse<List<Util.EllRow>> response = new HttpResponse<List<EllRow>>();
             DateTime intialDate = DateTime.Now;
             string mensaje = "";
             string serverTime = "";
             string timeParam = "";
             string sql = "";
+            string pbi = "0";
+            string responseTime = "";
+            long spanMS = 0;
+            TimeSpan spanlog;
+            JObject jobjectResult = null;
 
             Credentials credentials = new Credentials();
             credentials.username = WebConfigurationManager.AppSettings["EllipseUsername"];
@@ -372,41 +353,11 @@ namespace MatrizRiesgos.Controllers
             GenericScriptService.GenericScriptDTO genericScriptDTO = new GenericScriptService.GenericScriptDTO();
             genericScriptDTO.customAttributes = genericScriptSearchParam.customAttributes;
             genericScriptDTO.scriptName = "coeimo";
-            
+
             try
             {
                 //string allAttributes = GetAllRequestParam(genericScriptDTO.customAttributes);
-                Util.HttpResponse<List<Util.EllRow>> response = sendGeneric(oc, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
-
-                /*scriptActionParam = GetParamValue(genericScriptDTO.customAttributes, "action");
-                scriptNameParam = GetParamValue(genericScriptDTO.customAttributes, "scriptName");
-
-                try
-                {
-                    if (response.data[0].atts[0].name.ToLower().Contains("json"))
-                    {
-                        JObject json = JObject.Parse(response.data[0].atts[0].value);
-                        timeParam = GetParamValue(json, "time");
-                    }
-                }
-                catch (Exception)
-                {
-                    timeParam = "0";
-                }
-
-                TimeSpan span2 = DateTime.Now - intialDate;
-                long spanMS2 = (long)span2.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";" +
-                    scriptNameParam + ";" +
-                    scriptActionParam + ";OK;" +
-                    spanMS2 + ";" +
-                    GetTimeValue(timeParam) + ";" +
-                    credentials.username + ";" +
-                    credentials.district + ";" +
-                    credentials.position + ";" +
-                    allAttributes);*/
-
-
+                response = sendGeneric(oc, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
                 //Recibir el response: IF code == 200 
                 //Obtener el “serverTime”
                 mensaje = mensaje + "SERVERTIME-";
@@ -414,12 +365,13 @@ namespace MatrizRiesgos.Controllers
                 {
                     JObject json = JObject.Parse(response.data[0].atts[0].value);
                     serverTime = GetParamValue(json, "serverTime");
-                } else
+                }
+                else
                 {
                     foreach (Util.EllRow rows in response.data)
                     {
-                        foreach (Util.Attribute att in rows.atts) 
-                        { 
+                        foreach (Util.Attribute att in rows.atts)
+                        {
                             if (att.name.Equals("serverTime"))
                             {
                                 serverTime = att.value;
@@ -427,46 +379,55 @@ namespace MatrizRiesgos.Controllers
                         }
                     }
                 }
+            } 
+            catch (Exception ex)
+            {
+                mensaje = mensaje + ex.Message;
+            }
 
-                //Conectarse a Oracle con la tupla DBname, user, pass, ip, puerto
-                //Ejecutar el comando SQL del punto 3
-                IConnection conn = new ConnectionOracleImpl();
-                DateTime replDateTime = new DateTime() ;
-                DateTime serverDateTime = new DateTime();
-                try
+
+            //Conectarse a Oracle con la tupla DBname, user, pass, ip, puerto
+            //Ejecutar el comando SQL del punto 3
+            IConnection conn = new ConnectionOracleImpl();
+            DateTime replDateTime = new DateTime() ;
+            DateTime serverDateTime = new DateTime();
+            try
+            {
+                mensaje = mensaje + "ORACLETIME-";
+                sql = "select table_desc, last_mod_date, last_mod_time from ELLIPSE.msf010 where table_type = 'HOST' and table_code = 'REPL'";
+                Dictionary<int, Dictionary<string, object>> dataQuery = conn.GetQueryResultSet(sql);
+                if (dataQuery.Count() == 0)
                 {
-                    mensaje = mensaje + "ORACLETIME-";
-                    sql = "select table_desc, last_mod_date, last_mod_time from ELLIPSE.msf010 where table_type = 'HOST' and table_code = 'REPL'";
-                    Dictionary<int, Dictionary<string, object>> dataQuery = conn.GetQueryResultSet(sql);
-                    if (dataQuery.Count() == 0)
+                    jobjectResult = JObject.FromObject(new
                     {
-                        return JObject.FromObject(new
-                        {
-                            code = "501",
-                            menssage = "NO EXISTEN REGISTROS EN LA TABLA MSF010 TABLE_CODE[HOST] TABLE_TYPE[REPL]"
-                        });
-                    }
+                        code = "501",
+                        message = "NO EXISTEN REGISTROS EN LA TABLA MSF010 TABLE_CODE[HOST] TABLE_TYPE[REPL]"
+                    });
+                }
+                else
+                {
 
                     string lastModDate = dataQuery[0]["LAST_MOD_DATE"].ToString();
                     string lastModtime = dataQuery[0]["LAST_MOD_TIME"].ToString();
 
                     replDateTime = DateTime.ParseExact(lastModDate + lastModtime, "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
-                    serverDateTime = DateTime.ParseExact(serverTime.Replace(" ",""), "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
-                } catch (Exception ex)
-                {
-                    mensaje = mensaje + ex.Message;
-                    return JObject.FromObject(new
-                    {
-                        code = "501",
-                        menssage = "ERROR EN EL FORMATO DE LAS FECHAS [yyyyMMddHHmmss]"
-                    });
+                    serverDateTime = DateTime.ParseExact(serverTime.Replace(" ", ""), "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
                 }
-                //responseTime = serverTime – lastModDate / time
-                TimeSpan span = serverDateTime - replDateTime;
+            } catch (Exception ex)
+            {
+                mensaje = mensaje + ex.Message;
+                jobjectResult = JObject.FromObject(new
+                {
+                    code = "501",
+                    message = "ERROR EN EL FORMATO DE LAS FECHAS [yyyyMMddHHmmss]"
+                });
+            }
 
-                //Llamar al servicio IMO_STATUS_MSF010 usando el request del punto 6
-                string responseTime = Math.Abs(span.TotalSeconds).ToString();
-                string pbi = "0";
+            TimeSpan span = serverDateTime - replDateTime;
+            //Llamar al servicio IMO_STATUS_MSF010 usando el request del punto 6
+            try
+            {
+                responseTime = Math.Abs(span.TotalSeconds).ToString();
                 mensaje = mensaje + "IMO_ALARMA-";
                 genericScriptSearchParam.customAttributes = new GenericScriptService.Attribute[]
                 {
@@ -477,9 +438,6 @@ namespace MatrizRiesgos.Controllers
                 genericScriptDTO.customAttributes = genericScriptSearchParam.customAttributes;
                 response = sendGeneric(oc, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
 
-                /*allAttributes = GetAllRequestParam(genericScriptDTO.customAttributes);
-                scriptActionParam = GetParamValue(genericScriptDTO.customAttributes, "action");
-                scriptNameParam = GetParamValue(genericScriptDTO.customAttributes, "scriptName");*/
                 try
                 {
                     if (response.data[0].atts[0].name.ToLower().Contains("json"))
@@ -492,79 +450,62 @@ namespace MatrizRiesgos.Controllers
                 {
                     timeParam = "0";
                 }
-
-                /*TimeSpan span3 = DateTime.Now - intialDate;
-                long spanMS3 = (long)span3.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";" +
-                    scriptNameParam + ";" +
-                    scriptActionParam + ";OK;" +
-                    spanMS3 + ";" +
-                    GetTimeValue(timeParam) + ";" +
-                    credentials.username + ";" +
-                    credentials.district + ";" +
-                    credentials.position + ";" +
-                    allAttributes);*/
-
-
-                //POWER BI
-                try
+            } catch (Exception e)
+            {
+                mensaje = mensaje + e.Message;
+                jobjectResult = JObject.FromObject(new
                 {
-                    pbi = data.GetValue("sendToPowerBI").ToString();
-                    if (pbi.Equals("1"))
-                    {
-                        JObject json = JObject.FromObject(new
-                        {
-                            date = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                            timeAPI = replDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                            timeE9 = serverDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                            span = Int32.Parse(responseTime)
-                        });
-                        mensaje = mensaje + "PBI-";
-                        sendStatisticToPowerBI(json);
-                    }
-                } catch (Exception ex)
-                {
-                    mensaje = mensaje + ex.Message;
-                }
-
-                mensaje = mensaje + "FIN";
-                TimeSpan spanlog = DateTime.Now - intialDate;
-                long spanMS = (long)spanlog.TotalMilliseconds;
-
-                Info(intialDate.ToString(formatDate) + ";MatrizApi;monitor;OK;" +
-                    spanMS + ";0;" +
-                    credentials.username + ";" +
-                    credentials.district + ";" +
-                    credentials.position + ";" +
-                    mensaje + ";\n");
-
-                return JObject.FromObject(new
-                {
-                    code = "200",
-                    menssage = "MONITOREO EFECTUADO CORRECTAMENTE"
+                    code = "501",
+                    message = "ERROR EN LA EJECUCION DEL PROCESO IMO_ALARMA_MSF010 " + e.Message
                 });
             }
-            catch (Exception ex)
+            //POWER BI
+            try
+            {
+                pbi = data.GetValue("sendToPowerBI").ToString();
+                if (pbi.Equals("1"))
+                {
+                    JObject json = JObject.FromObject(new
+                    {
+                        date = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                        timeAPI = replDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                        timeE9 = serverDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                        span = Int32.Parse(responseTime)
+                    });
+                    mensaje = mensaje + "PBI-";
+                    sendStatisticToPowerBI(json);
+                }
+            } catch (Exception ex)
             {
                 mensaje = mensaje + ex.Message;
-                TimeSpan spanlog = DateTime.Now - intialDate;
-                long spanMS = (long)spanlog.TotalMilliseconds;
-                Info(intialDate.ToString(formatDate) + ";MatrizApi;monitor;OK;" +
-                    spanMS + ";0;" +
-                    credentials.username + ";" +
-                    credentials.district + ";" +
-                    credentials.position + ";" +
-                    mensaje + ";\n");
-
-                return JObject.FromObject(new
+                jobjectResult = JObject.FromObject(new
                 {
                     code = "501",
                     menssage = "ERROR " + ex.Message
                 });
             }
 
+            mensaje = mensaje + "FIN";
+            spanlog = DateTime.Now - intialDate;
+            spanMS = (long)spanlog.TotalMilliseconds;
 
-        }
+            Info(intialDate.ToString(formatDate) + ";MatrizApi;monitor;OK;" +
+                spanMS + ";0;" +
+                credentials.username + ";" +
+                credentials.district + ";" +
+                credentials.position + ";" +
+                mensaje + ";\n");
+
+            if (jobjectResult == null) {
+                jobjectResult = JObject.FromObject(new
+                {
+                    code = "200",
+                    menssage = "MONITOREO EFECTUADO CORRECTAMENTE"
+                });
+            }
+
+            return jobjectResult;
+        }        
 
         [AllowAnonymous]
         [HttpPost]
@@ -1042,12 +983,14 @@ namespace MatrizRiesgos.Controllers
         {
             string allAttributes = "";
             foreach (GenericScriptService.Attribute item in atts) { 
-                allAttributes += "{" + item.name + ":" + item.value + "}, ";
+                allAttributes += "{" + item.name + ":" + item.value + "},";
             }
+            if (allAttributes.Length > 1)
+                allAttributes = allAttributes.Substring(1, allAttributes.Length - 2);
 
             if (allAttributes.Length > MAX_LONG_RESPONSE)
             {
-                allAttributes = allAttributes.Substring(0, MAX_LONG_RESPONSE) + "...";
+                allAttributes = allAttributes.Substring(0, MAX_LONG_RESPONSE) + ",...";
             }
 
             return allAttributes;
