@@ -16,6 +16,8 @@ using NLog;
 using Newtonsoft.Json;
 using System.Globalization;
 /* Historia
+* 2022-04-27 v2.17 Evitar acceso Oracle para obtener posicion, ahora viene en el header desde Cursor
+*                  En el monitoreo de BD encadenamos los try-catch para no continuar si alguno falla
 * 2022-04-27 v2.16 Se adiciona parametro usuario para enviarse por el atributo RunAs y asi como tambien funcionalidad para obtener la posicion por SQL.
 * 2022-04-12 v2.15 Se agregan los al metodo monitor.
 * 2022-04-05 v2.14 Se adiciona en el web.config parametro "bufferSize" para la inmediata escrituroa del log. Se toman solo los 4 primeros caracteres del distrito para mostrar en el log.
@@ -59,7 +61,7 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.16";
+        readonly string versionAPI = "v2.17";
         //private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         Logger log = NLog.LogManager.GetCurrentClassLogger();
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
@@ -354,7 +356,7 @@ namespace MatrizRiesgos.Controllers
             GenericScriptService.GenericScriptDTO genericScriptDTO = new GenericScriptService.GenericScriptDTO();
             genericScriptDTO.customAttributes = genericScriptSearchParam.customAttributes;
             genericScriptDTO.scriptName = "coeimo";
-
+            string falla = "Falla llamado IMO_ACTUALIZAR_MSF010";
             try
             {
                 //string allAttributes = GetAllRequestParam(genericScriptDTO.customAttributes);
@@ -366,6 +368,7 @@ namespace MatrizRiesgos.Controllers
                 {
                     JObject json = JObject.Parse(response.data[0].atts[0].value);
                     serverTime = GetParamValue(json, "serverTime");
+                    falla = "";
                 }
                 else
                 {
@@ -376,6 +379,7 @@ namespace MatrizRiesgos.Controllers
                             if (att.name.Equals("serverTime"))
                             {
                                 serverTime = att.value;
+                                falla = "";
                             }
                         }
                     }
@@ -392,101 +396,114 @@ namespace MatrizRiesgos.Controllers
             IConnection conn = new ConnectionOracleImpl();
             DateTime replDateTime = new DateTime() ;
             DateTime serverDateTime = new DateTime();
-            try
+            if (falla == "") 
             {
-                mensaje = mensaje + "ORACLETIME-";
-                sql = "select table_desc, last_mod_date, last_mod_time from ELLIPSE.msf010 where table_type = 'HOST' and table_code = 'REPL'";
-                Dictionary<int, Dictionary<string, object>> dataQuery = conn.GetQueryResultSet(sql);
-                if (dataQuery.Count() == 0)
+                try
                 {
+                    mensaje = mensaje + "ORACLETIME-";
+                    sql = "select table_desc, last_mod_date, last_mod_time from ELLIPSE.msf010 where table_type = 'HOST' and table_code = 'REPL'";
+                    Dictionary<int, Dictionary<string, object>> dataQuery = conn.GetQueryResultSet(sql);
+                    if (dataQuery.Count() == 0)
+                    {
+                        falla = "MSF010:REPL not found";
+                        jobjectResult = JObject.FromObject(new
+                        {
+                            code = "501",
+                            message = "NO EXISTEN REGISTROS EN LA TABLA MSF010 TABLE_CODE[HOST] TABLE_TYPE[REPL]"
+                        });
+                    }
+                    else
+                    {
+
+                        string lastModDate = dataQuery[0]["LAST_MOD_DATE"].ToString();
+                        string lastModtime = dataQuery[0]["LAST_MOD_TIME"].ToString();
+
+                        replDateTime = DateTime.ParseExact(lastModDate + lastModtime, "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+                        serverDateTime = DateTime.ParseExact(serverTime.Replace(" ", ""), "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+                    }
+                } catch (Exception ex)
+                {
+                    falla = "Falla cnx Oracle";
+                    mensaje = mensaje + ex.Message;
                     jobjectResult = JObject.FromObject(new
                     {
                         code = "501",
-                        message = "NO EXISTEN REGISTROS EN LA TABLA MSF010 TABLE_CODE[HOST] TABLE_TYPE[REPL]"
+                        message = "ERROR EN EL FORMATO DE LAS FECHAS [yyyyMMddHHmmss]"
                     });
                 }
-                else
-                {
-
-                    string lastModDate = dataQuery[0]["LAST_MOD_DATE"].ToString();
-                    string lastModtime = dataQuery[0]["LAST_MOD_TIME"].ToString();
-
-                    replDateTime = DateTime.ParseExact(lastModDate + lastModtime, "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
-                    serverDateTime = DateTime.ParseExact(serverTime.Replace(" ", ""), "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
-                }
-            } catch (Exception ex)
-            {
-                mensaje = mensaje + ex.Message;
-                jobjectResult = JObject.FromObject(new
-                {
-                    code = "501",
-                    message = "ERROR EN EL FORMATO DE LAS FECHAS [yyyyMMddHHmmss]"
-                });
             }
-
             TimeSpan span = serverDateTime - replDateTime;
             //Llamar al servicio IMO_STATUS_MSF010 usando el request del punto 6
-            try
+            if (falla == "") 
             {
-                responseTime = Math.Abs(span.TotalSeconds).ToString();
-                mensaje = mensaje + "IMO_ALARMA-";
-                genericScriptSearchParam.customAttributes = new GenericScriptService.Attribute[]
-                {
-                    CreateAttribute("scriptName","coeimo"),
-                    CreateAttribute("action","IMO_ALARMA_MSF010"),
-                    CreateAttribute("responseTime",Math.Abs(span.TotalSeconds).ToString())
-                };
-                genericScriptDTO.customAttributes = genericScriptSearchParam.customAttributes;
-                response = sendGeneric(oc, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
-
                 try
                 {
-                    if (response.data[0].atts[0].name.ToLower().Contains("json"))
+                    falla = "Falla llamado a IMO_ALARMA_MSF010";
+                    responseTime = Math.Abs(span.TotalSeconds).ToString();
+                    mensaje = mensaje + "IMO_ALARMA-";
+                    genericScriptSearchParam.customAttributes = new GenericScriptService.Attribute[]
                     {
-                        JObject json = JObject.Parse(response.data[0].atts[0].value);
-                        timeParam = GetParamValue(json, "time");
+                        CreateAttribute("scriptName","coeimo"),
+                        CreateAttribute("action","IMO_ALARMA_MSF010"),
+                        CreateAttribute("responseTime",Math.Abs(span.TotalSeconds).ToString())
+                    };
+                    genericScriptDTO.customAttributes = genericScriptSearchParam.customAttributes;
+                    response = sendGeneric(oc, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
+    
+                    try
+                    {
+                        if (response.data[0].atts[0].name.ToLower().Contains("json"))
+                        {
+                            JObject json = JObject.Parse(response.data[0].atts[0].value);
+                            timeParam = GetParamValue(json, "time");
+                            falla = "";
+                        }
                     }
-                }
-                catch (Exception)
+                    catch (Exception)
+                    {
+                        timeParam = "0";
+                    }
+                } catch (Exception e)
                 {
-                    timeParam = "0";
+                    mensaje = mensaje + e.Message;
+                    jobjectResult = JObject.FromObject(new
+                    {
+                        code = "501",
+                        message = "ERROR EN LA EJECUCION DEL PROCESO IMO_ALARMA_MSF010 " + e.Message
+                    });
                 }
-            } catch (Exception e)
-            {
-                mensaje = mensaje + e.Message;
-                jobjectResult = JObject.FromObject(new
-                {
-                    code = "501",
-                    message = "ERROR EN LA EJECUCION DEL PROCESO IMO_ALARMA_MSF010 " + e.Message
-                });
             }
             //POWER BI
-            try
+            if (falla == "") 
             {
-                pbi = data.GetValue("sendToPowerBI").ToString();
-                if (pbi.Equals("1"))
+                try
                 {
-                    JObject json = JObject.FromObject(new
+                    falla = "Falla grabar en PowerBI";
+                    pbi = data.GetValue("sendToPowerBI").ToString();
+                    if (pbi.Equals("1"))
                     {
-                        date = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                        timeAPI = replDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                        timeE9 = serverDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                        span = Int32.Parse(responseTime)
-                    });
-                    mensaje = mensaje + "PBI-";
-                    sendStatisticToPowerBI(json);
-                }
-            } catch (Exception ex)
-            {
-                mensaje = mensaje + ex.Message;
-                jobjectResult = JObject.FromObject(new
+                        JObject json = JObject.FromObject(new
+                        {
+                            date = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                            timeAPI = replDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                            timeE9 = serverDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                            span = Int32.Parse(responseTime)
+                        });
+                        mensaje = mensaje + "PBI-";
+                        sendStatisticToPowerBI(json);
+                        falla = "";
+                    }
+                } catch (Exception ex)
                 {
-                    code = "501",
-                    menssage = "ERROR " + ex.Message
-                });
+                    mensaje = mensaje + ex.Message;
+                    jobjectResult = JObject.FromObject(new
+                    {
+                        code = "501",
+                        menssage = "ERROR " + ex.Message
+                    });
+                }
             }
-
-            mensaje = mensaje + "FIN";
+            mensaje = mensaje + "FALLA=" + falla;
             spanlog = DateTime.Now - intialDate;
             spanMS = (long)spanlog.TotalMilliseconds;
 
@@ -604,16 +621,43 @@ namespace MatrizRiesgos.Controllers
             Credentials credentials)
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-            string userRunedAs = GetRequestHeader("user");
+            List<GenericScriptService.Attribute> paramList = genericScriptSearchParam.customAttributes.ToList();
+            //Intervencion de Rene ... renombrar parametro user, obtener posicion, estandarizar null, runAS con user+posi
+            string userRunedAs = GetRequestHeader("usuario");
+            string posiRunedAs = GetRequestHeader("posicion");
+            string moduleRunedAs = GetRequestHeader("modulo");
+            
+            if (userRunedAs == "") userRunedAs = null;
+            if (userRunedAs != null)
+            {
+                userRunedAs = userRunedAs.Trim();
+                paramList.Add(CreateAttribute("usuario", userRunedAs));
+            }
 
-            if (userRunedAs != null) {
+            if (posiRunedAs == "") posiRunedAs = null;
+            if (posiRunedAs != null)
+            {
+                posiRunedAs = posiRunedAs.Trim();
+                paramList.Add(CreateAttribute("posicion", posiRunedAs));
+            }
+
+            if (moduleRunedAs == "") moduleRunedAs = null;
+            if (moduleRunedAs != null)
+            {
+                moduleRunedAs = moduleRunedAs.Trim();
+                paramList.Add(CreateAttribute("modulo", moduleRunedAs));
+            }
+
+            if (userRunedAs != null && posiRunedAs != null) {
                 RunAs runAs = new RunAs();
                 runAs.district = opSheet.district;
                 runAs.user = userRunedAs.Split('@')[0];
-                runAs.position = GetDefaultPositionBySQL(runAs.user);
+                //runAs.position = GetDefaultPositionBySQL(runAs.user);
+                runAs.position = posiRunedAs;
                 opSheet.runAs = runAs;
             }
 
+            genericScriptSearchParam.customAttributes = paramList.ToArray();
             string errors = "";
             string scriptNameParam = GetParamValue(genericScriptSearchParam, "scriptName");
             string scriptActionParam = GetParamValue(genericScriptSearchParam, "action");
