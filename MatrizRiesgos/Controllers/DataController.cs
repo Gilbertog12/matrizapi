@@ -16,6 +16,7 @@ using NLog;
 using Newtonsoft.Json;
 using System.Globalization;
 /* Historia
+* 2022-04-27 v2.16 Se adiciona parametro usuario para enviarse por el atributo RunAs y asi como tambien funcionalidad para obtener la posicion por SQL.
 * 2022-04-12 v2.15 Se agregan los al metodo monitor.
 * 2022-04-05 v2.14 Se adiciona en el web.config parametro "bufferSize" para la inmediata escrituroa del log. Se toman solo los 4 primeros caracteres del distrito para mostrar en el log.
 * 2022-04-05 v2.13 Estandarizacion de los mensajes de log .
@@ -603,6 +604,15 @@ namespace MatrizRiesgos.Controllers
             Credentials credentials)
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+            string userRunedAs = GetRequestHeader("user");
+
+            if (userRunedAs != null) {
+                RunAs runAs = new RunAs();
+                runAs.district = opSheet.district;
+                runAs.user = userRunedAs.Split('@')[0];
+                runAs.position = GetDefaultPositionBySQL(runAs.user);
+                opSheet.runAs = runAs;
+            }
 
             string errors = "";
             string scriptNameParam = GetParamValue(genericScriptSearchParam, "scriptName");
@@ -954,6 +964,45 @@ namespace MatrizRiesgos.Controllers
 
             return execute(atts, credentials);
         }
+
+        public string GetDefaultPositionBySQL(string username)
+        {
+            string employeeId = GetEmployeeIdBySQL(username);
+            string position = GetPositionBySQL(employeeId);
+            return position;
+        }
+
+        public string GetEmployeeIdBySQL(string username)
+        {
+            IConnection conn = new ConnectionOracleImpl();
+            string sql = "SELECT EMPLOYEE_ID FROM ELLIPSE.MSF020 WHERE ENTRY_TYPE = 'S'  AND ENTITY = '" + username + "'";
+            Dictionary<int, Dictionary<string, object>> dataQuery = conn.GetQueryResultSet(sql);
+            if (dataQuery.Count() > 0)
+            {
+                return dataQuery[0]["EMPLOYEE_ID"].ToString();
+            } else
+            {
+                return "";
+            }
+
+        }
+
+        public string GetPositionBySQL(string employeeId)
+        {
+            IConnection conn = new ConnectionOracleImpl();
+            string sql = "SELECT MSF878.POSITION_ID FROM ELLIPSE.MSF878 INNER JOIN ELLIPSE.MSF870 ON MSF878.POSITION_ID = MSF870.POSITION_ID WHERE MSF878.EMPLOYEE_ID = '" + employeeId + "' AND MSF878.INV_STR_DATE >= 99999999 - TO_CHAR(SYSDATE,'YYYYMMDD') AND  ( MSF878.POS_STOP_DATE >= TO_CHAR(SYSDATE,'YYYYMMDD') OR MSF878.POS_STOP_DATE = '00000000') AND PRIMARY_POS = '0'";
+            Dictionary<int, Dictionary<string, object>> dataQuery = conn.GetQueryResultSet(sql);
+            if (dataQuery.Count() > 0)
+            {
+                return dataQuery[0]["POSITION_ID"].ToString();
+            }
+            else
+            {
+                return "";
+            }
+
+        }
+
         public Util.HttpResponse<List<Util.EllRow>> GetAttachmentByGroovy(string primaryKey, string blobUUID, string scriptName, Credentials credentials)
         {
             List<GenericScriptService.Attribute> atts = new List<GenericScriptService.Attribute>();
@@ -1035,6 +1084,22 @@ namespace MatrizRiesgos.Controllers
             var bodyText = bodyStream.ReadToEnd();
             return bodyText;
         }
+
+        public static string GetRequestHeader(string headerParam)
+        {
+            string headerText = null;
+
+            try
+            {
+                headerText = HttpContext.Current.Request.Headers[headerParam];
+            } catch (Exception)
+            {
+                headerText = null;
+            }
+
+            return headerText;
+        }
+
         private List<GenericScriptService.Attribute> ConvertParamsToEllipse(JObject json)
         {
             List<GenericScriptService.Attribute> atts = new List<GenericScriptService.Attribute>();
