@@ -16,6 +16,8 @@ using NLog;
 using Newtonsoft.Json;
 using System.Globalization;
 /* Historia
+* 2022-04-27 v2.18 Se uiliza acceso directo a la BD de replica para poder desplegar de forma rapida las listas desplegables.
+*                  Se crea clave DIRECTLIST en el WebConfig para determinar que servicios van a ser directos BD o indirectos coemdr.groovy
 * 2022-04-27 v2.17 Evitar acceso Oracle para obtener posicion, ahora viene en el header desde Cursor
 *                  En el monitoreo de BD encadenamos los try-catch para no continuar si alguno falla
 * 2022-04-27 v2.16 Se adiciona parametro usuario para enviarse por el atributo RunAs y asi como tambien funcionalidad para obtener la posicion por SQL.
@@ -61,7 +63,7 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.17";
+        readonly string versionAPI = "v2.18";
         //private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         Logger log = NLog.LogManager.GetCurrentClassLogger();
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
@@ -536,8 +538,6 @@ namespace MatrizRiesgos.Controllers
             credentials.username = data.GetValue("username").ToString();
             credentials.password = data.GetValue("pwd").ToString();
 
-
-
             if (string.IsNullOrEmpty(WebConfigurationManager.AppSettings["EllipseDistrict"]))
             {
                 return GetDefaultDistrict(credentials);
@@ -549,7 +549,7 @@ namespace MatrizRiesgos.Controllers
                 credentials.password = WebConfigurationManager.AppSettings["EllipsePassword"];
                 credentials.district = WebConfigurationManager.AppSettings["EllipseDistrict"];
                 credentials.position = WebConfigurationManager.AppSettings["EllipsePosition"];
-
+                credentials.attributeType = "ELLJSON";
                 return GetDefaultDistrictByGroovy(userToFind, credentials);
             }
 
@@ -622,11 +622,14 @@ namespace MatrizRiesgos.Controllers
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             List<GenericScriptService.Attribute> paramList = genericScriptSearchParam.customAttributes.ToList();
+            List<Util.EllRow> data = new List<EllRow>();
             //Intervencion de Rene ... renombrar parametro user, obtener posicion, estandarizar null, runAS con user+posi
             string userRunedAs = GetRequestHeader("usuario");
             string posiRunedAs = GetRequestHeader("posicion");
             string moduleRunedAs = GetRequestHeader("modulo");
-            
+            proxySheet.RequestEncoding = System.Text.Encoding.UTF8;
+
+            DateTime intialDate = DateTime.Now;
             if (userRunedAs == "") userRunedAs = null;
             if (userRunedAs != null)
             {
@@ -658,18 +661,98 @@ namespace MatrizRiesgos.Controllers
             }
 
             genericScriptSearchParam.customAttributes = paramList.ToArray();
-            string errors = "";
             string scriptNameParam = GetParamValue(genericScriptSearchParam, "scriptName");
             string scriptActionParam = GetParamValue(genericScriptSearchParam, "action");
 
+            credentials.actionName = scriptActionParam;
+            credentials.scriptName = scriptNameParam;
             EllipseWebServicesClient.ClientConversation.username = credentials.username;
             EllipseWebServicesClient.ClientConversation.password = credentials.password;
 
-            DateTime intialDate = DateTime.Now;
-            GenericScriptService.GenericScriptServiceResult[] genericScriptServiceResults = proxySheet.executeForCollection(opSheet, genericScriptSearchParam, genericScriptDTO);
             Util.HttpResponse<List<Util.EllRow>> result = new Util.HttpResponse<List<Util.EllRow>>();
-            List<Util.EllRow> data = new List<Util.EllRow>();
             //bool redirect = false;
+
+            Dictionary<String, String> directMapAction = GetDirectAction();
+            if (directMapAction.ContainsKey(scriptActionParam))
+            {
+                string tableType = directMapAction[scriptActionParam];
+                data = GetDirectGenericData(scriptActionParam, tableType);
+            } else
+            {
+                data = GetEllipseGenericData(proxySheet, opSheet, genericScriptSearchParam, genericScriptDTO, credentials, intialDate);
+            }
+
+            result.redirect = null;
+            result.message = "Generic se ejecuto Correctamente";
+            result.data = data;
+            result.success = true;
+
+            credentials.scriptName = scriptNameParam;
+            credentials.actionName = scriptActionParam;
+            if (credentials.attributeType.Equals("JSON"))
+                BuildRequestInfo(result, intialDate, credentials, GetRequestBody());
+            else
+                BuildRequestInfo(result, intialDate, credentials, GetAllRequestParam(genericScriptDTO.customAttributes.ToArray()));
+            return result;
+        }
+
+        private List<Util.EllRow> GetDirectGenericData(string scriptActionParam, string tableTypeWithPrefix)
+        {
+            List<Util.EllRow> data = new List<EllRow>();
+
+            IConnection conn = new ConnectionOracleImpl();
+            string tableType = GetTableTypeWithoutPrefix(scriptActionParam, tableTypeWithPrefix);
+            string prefix = GetPrefix(scriptActionParam, tableTypeWithPrefix);
+
+            string sql = "select trim(TABLE_CODE), trim(TABLE_DESC), trim(TABLE_CODE) || ' - ' || trim(TABLE_DESC) from ELLIPSE.msf010 where table_type = '" + tableType + "'";
+            List<string> attributeList = new List<string>();
+            attributeList.Add(prefix + "Id");
+            attributeList.Add(prefix + "Descripcion");
+            attributeList.Add(prefix + "DescripcionSola");
+            data = conn.GetQueryResultSet(sql, attributeList);
+
+            return data;
+        }
+
+        private string GetPrefix(string scriptActionParam, string tableTypeWithPrefix)
+        {
+            string prefix = "";
+            try
+            {
+                prefix = scriptActionParam.Split(',')[1].ToLower();
+            } catch (Exception)
+            {
+                prefix = scriptActionParam.Split('_')[0].ToLower();
+            }
+
+            return prefix;
+        }
+
+        private string GetTableTypeWithoutPrefix(string scriptActionParam, string tableTypeWithPrefix)
+        {
+            string tableTypeWithoutPrefix = "";
+            try
+            {
+                tableTypeWithoutPrefix = tableTypeWithPrefix.Split(',')[0];
+            }
+            catch (Exception)
+            {
+                
+            }
+
+            return tableTypeWithoutPrefix;
+        }
+
+        private List<Util.EllRow> GetEllipseGenericData(GenericScriptService.GenericScriptService proxySheet, 
+            GenericScriptService.OperationContext opSheet, 
+            GenericScriptService.GenericScriptSearchParam genericScriptSearchParam,
+            GenericScriptService.GenericScriptDTO genericScriptDTO, 
+            Credentials credentials, DateTime intialDate)
+        {
+            List<Util.EllRow> data = new List<EllRow>();
+            string errors = "";
+            
+            GenericScriptService.GenericScriptServiceResult[] genericScriptServiceResults = proxySheet.executeForCollection(opSheet, genericScriptSearchParam, genericScriptDTO);
 
             foreach (GenericScriptService.GenericScriptServiceResult genericScriptServiceResult in genericScriptServiceResults)
             {
@@ -706,11 +789,11 @@ namespace MatrizRiesgos.Controllers
                 {
                     string timeParam = GetParamValue(genericScriptServiceResults, "time");
 
-                    Info(intialDate.ToString(formatDate) + ";" + scriptNameParam + ";" + scriptActionParam + ";OK;" +
+                    Info(intialDate.ToString(formatDate) + ";" + credentials.scriptName+ ";" + credentials.actionName + ";OK;" +
                         "0;" + GetTimeValue(timeParam) + ";" +
                         credentials.username + ";" +
                         credentials.district + ";" +
-                        opSheet.position + ";" +
+                        credentials.position + ";" +
                         " " + data[0].atts[0].value);
 
                     if (data[0].atts[0].name == "type" && data[0].atts[0].value == "E")
@@ -724,18 +807,26 @@ namespace MatrizRiesgos.Controllers
                 }
             }
 
-            result.redirect = null;
-            result.message = "Generic se ejecuto Correctamente";
-            result.data = data;
-            result.success = true;
+            return data;
+        }
 
-            credentials.scriptName = scriptNameParam;
-            credentials.actionName = scriptActionParam;
-            if (credentials.attributeType.Equals("JSON"))
-                BuildRequestInfo(result, intialDate, credentials, GetRequestBody());
-            else
-                BuildRequestInfo(result, intialDate, credentials, GetAllRequestParam(genericScriptDTO.customAttributes.ToArray()));
-            return result;
+        private Dictionary<string, string> GetDirectAction()
+        {
+            Dictionary<string, string> directMap = new Dictionary<string, string>();
+
+            string directList = WebConfigurationManager.AppSettings["DIRECTLIST"];
+            if (!string.IsNullOrEmpty(directList))
+            {
+                foreach (string row in directList.Split(';'))
+                {
+                    string key = row.Split(':')[0];
+                    string value = row.Split(':')[1];
+
+                    directMap.Add(key, value);
+                }
+            }
+
+            return directMap;
         }
 
         private Util.HttpResponse<List<Util.EllRow>> execute(List<GenericScriptService.Attribute> atts, Credentials credentials)
@@ -773,52 +864,9 @@ namespace MatrizRiesgos.Controllers
                 {
                     customAttributes = atts.ToArray()
                 };
-                try
-                {
 
-                    GenericScriptServiceResult[] results = proxySheet.executeForCollection(opSheet, genericScriptSearchParam, genericScriptDTO);
-                    string errors = "";
-                    foreach (GenericScriptServiceResult genericScriptServiceResult in results)
-                    {
-
-                        String name = genericScriptServiceResult.genericScriptDTO.customAttributes[0].value;
-                        String value = genericScriptServiceResult.genericScriptDTO.customAttributes[1].value;
-
-                        row.atts.Add(new Util.Attribute() { name = name, value = value });
-
-                        foreach (Error error in genericScriptServiceResult.errors)
-                        {
-                            errors = errors + error.messageText + " - ";
-                        }
-
-                    }
-
-                    TimeSpan span = DateTime.Now - intialDate;
-                    long spanMS = (long)span.TotalMilliseconds;
-                    Info(intialDate.ToString(formatDate) + ";execute;OK;" +
-                        spanMS + ";0;" +
-                        credentials.username + ";" +
-                        credentials.district + ";" +
-                        opSheet.position + ";" +
-                        "Errors=" + errors);
-
-                    data.Add(row);
-                    return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "success", redirect = false, success = true };
-                }
-                catch (Exception ex)
-                {
-                    TimeSpan span = DateTime.Now - intialDate;
-                    long spanMS = (long)span.TotalMilliseconds;
-                    Info(intialDate.ToString(formatDate) + ";execute;E7;" +
-                        spanMS + ";0;" +
-                        credentials.username + ";" +
-                        credentials.district + ";" +
-                        credentials.position + ";" +
-                        ex.Message + ";\n" + ex.StackTrace);
-                    row.atts.Add(new Util.Attribute() { name = "ERROR", value = "ERROR AL EJECUTAR EL PROCEDIMIENTO " + ex.Message });
-                    data.Add(row);
-                    return new Util.HttpResponse<List<Util.EllRow>>() { data = data, message = "no success", redirect = false, success = false };
-                }
+                Util.HttpResponse<List<Util.EllRow>> result = sendGeneric(opSheet, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
+                return result;  
             }
             catch (Exception ex)
             {
@@ -858,6 +906,7 @@ namespace MatrizRiesgos.Controllers
                 credentials.password = WebConfigurationManager.AppSettings["EllipsePassword"];
                 credentials.district = WebConfigurationManager.AppSettings["EllipseDistrict"];
                 credentials.position = WebConfigurationManager.AppSettings["EllipsePosition"];
+                credentials.attributeType = "ELLJSON";
                 return GetDefaultPositionByGroovy(userToFind, credentials);
             }
         }
@@ -873,6 +922,15 @@ namespace MatrizRiesgos.Controllers
         public GenericScriptService.Attribute CreateAttribute(string name, string value)
         {
             GenericScriptService.Attribute att = new GenericScriptService.Attribute();
+            att.name = name;
+            att.value = value;
+
+            return att;
+        }
+
+        public Util.Attribute CreateUtilAttribute(string name, string value)
+        {
+            Util.Attribute att = new Util.Attribute();
             att.name = name;
             att.value = value;
 
@@ -1005,8 +1063,29 @@ namespace MatrizRiesgos.Controllers
             att3.name = "scriptName";
             att3.value = "coemdr";
             atts.Add(att3);
+            
+            Util.HttpResponse < List < Util.EllRow >> response = execute(atts, credentials);
+            OrderData(response);
+            return response;
+        }
 
-            return execute(atts, credentials);
+        private void OrderData(HttpResponse<List<EllRow>> response)
+        {
+            List<Util.EllRow> newRowList = new List<Util.EllRow>();
+            EllRow newRow = new EllRow();
+            newRow.atts = new List<Util.Attribute>();
+            newRowList.Add(newRow);
+            try
+            {
+                foreach (Util.EllRow row in response.data)
+                {
+                    newRow.atts.Add(CreateUtilAttribute(row.atts[0].value, row.atts[1].value));
+                }
+                response.data = newRowList;
+            } catch (Exception )
+            {
+
+            }
         }
 
         public string GetDefaultPositionBySQL(string username)

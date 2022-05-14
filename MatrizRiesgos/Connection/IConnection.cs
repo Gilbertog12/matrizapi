@@ -10,6 +10,9 @@ namespace MatrizRiesgos.Util
     {
         Boolean ConnectDB();
         Dictionary<Int32, Dictionary<String, Object>> GetQueryResultSet(string sqlQuery);
+
+        List<Util.EllRow> GetQueryResultSet(string sqlQuery, List<string> columnsAttribute);
+
         Boolean CloseDB();
     }
 }

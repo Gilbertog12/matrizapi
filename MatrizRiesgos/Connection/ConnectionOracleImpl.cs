@@ -10,6 +10,7 @@ namespace MatrizRiesgos.Util
         // Constantes
         private OracleConnection sqlConn;
         private OracleCommand sqlComm;
+        private OracleDataReader dataReader;
         public Boolean debugErrors = false;
         public Boolean debugWarnings = false;
         public Boolean debugQuerys = false;
@@ -53,7 +54,6 @@ namespace MatrizRiesgos.Util
 
         public Dictionary<int, Dictionary<string, object>> GetQueryResultSet(string sqlQuery)
         {
-            OracleDataReader dataReader;
             Dictionary<Int32, Dictionary<String, Object>> data = new Dictionary<Int32, Dictionary<String, Object>>();
             Dictionary<String, Object> row = new Dictionary<String, Object>();
             try
@@ -64,10 +64,10 @@ namespace MatrizRiesgos.Util
                 sqlComm.Connection = sqlConn;
                 sqlComm.CommandText = sqlQuery;
                 dataReader = sqlComm.ExecuteReader();
-                row = new Dictionary<String, Object>();
                 int indexRow = 0;
                 while (dataReader.Read())
                 {
+                    row = new Dictionary<String, Object>();
                     for (int indexColumn = 0; indexColumn < dataReader.FieldCount; indexColumn++)
                     {
                         row.Add(dataReader.GetName(indexColumn), dataReader.GetOracleValue(indexColumn));
@@ -88,11 +88,61 @@ namespace MatrizRiesgos.Util
             return data;
         }
 
+        public List<Util.EllRow> GetQueryResultSet(string sqlQuery, List<string> columnsAttribute)
+        {
+            List<Util.EllRow> rows = new List<Util.EllRow>();
+            try
+            {
+                this.ConnectDB();
+
+                sqlComm = new OracleCommand();
+                sqlComm.Connection = sqlConn;
+                sqlComm.CommandText = sqlQuery;
+                dataReader = sqlComm.ExecuteReader();
+                
+                while (dataReader.Read())
+                {
+                    //row = new Dictionary<String, Object>();
+                    Util.EllRow rowEll = new Util.EllRow();
+                    rowEll.atts = new List<Attribute>();
+                    //for (int indexColumn = 0; indexColumn < columnsAttribute.Count; indexColumn++)
+                    //{
+                        rowEll.atts.Add(CreateUtilAttribute(columnsAttribute[0], dataReader[0].ToString()));
+                        rowEll.atts.Add(CreateUtilAttribute(columnsAttribute[1], dataReader[1].ToString()));
+                        rowEll.atts.Add(CreateUtilAttribute(columnsAttribute[2], dataReader[2].ToString()));
+                    //}
+                    rows.Add(rowEll);
+                }
+            }
+            catch (Exception)
+            {
+            }
+            finally
+            {
+                this.CloseDB();
+            }
+
+            return rows;
+        }
+
+        public Util.Attribute CreateUtilAttribute(string name, string value)
+        {
+            Util.Attribute att = new Util.Attribute();
+            att.name = name;
+            att.value = value;
+
+            return att;
+        }
+
         public bool CloseDB()
         {
             try
             {
+                sqlComm.Dispose();
+                dataReader.Close();
+                dataReader.Dispose();
                 sqlConn.Close();
+                sqlConn.Dispose();
 
                 return true;
             }
