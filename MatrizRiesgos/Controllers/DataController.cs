@@ -16,6 +16,7 @@ using NLog;
 using Newtonsoft.Json;
 using System.Globalization;
 /* Historia
+* 2022-07-07 v2.20 Se agrega log con el valor del RunAs si es pasado. Se agrega condicion para evitar el [NaN] al obtener el serverTime.
 * 2022-06-12 v2.19 Se agrega condicion para establecer la autenticacion contra el Directorio Activo.
 * 2022-04-27 v2.18 Se uiliza acceso directo a la BD de replica para poder desplegar de forma rapida las listas desplegables.
 *                  Se crea clave DIRECTLIST en el WebConfig para determinar que servicios van a ser directos BD o indirectos coemdr.groovy
@@ -64,11 +65,12 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.19";
+        readonly string versionAPI = "v2.20";
         //private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         Logger log = NLog.LogManager.GetCurrentClassLogger();
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
         private static readonly int MAX_LONG_RESPONSE = 600;
+        private string previousTimeServer = "0";
         //formatDate
 
         [HttpGet]
@@ -387,7 +389,7 @@ namespace MatrizRiesgos.Controllers
                         }
                     }
                 }
-            } 
+            }
             catch (Exception ex)
             {
                 mensaje = mensaje + ex.Message;
@@ -397,9 +399,9 @@ namespace MatrizRiesgos.Controllers
             //Conectarse a Oracle con la tupla DBname, user, pass, ip, puerto
             //Ejecutar el comando SQL del punto 3
             IConnection conn = new ConnectionOracleImpl();
-            DateTime replDateTime = new DateTime() ;
+            DateTime replDateTime = new DateTime();
             DateTime serverDateTime = new DateTime();
-            if (falla == "") 
+            if (falla == "")
             {
                 try
                 {
@@ -424,7 +426,8 @@ namespace MatrizRiesgos.Controllers
                         replDateTime = DateTime.ParseExact(lastModDate + lastModtime, "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
                         serverDateTime = DateTime.ParseExact(serverTime.Replace(" ", ""), "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
                     }
-                } catch (Exception ex)
+                }
+                catch (Exception ex)
                 {
                     falla = "Falla cnx Oracle";
                     mensaje = mensaje + ex.Message;
@@ -437,7 +440,7 @@ namespace MatrizRiesgos.Controllers
             }
             TimeSpan span = serverDateTime - replDateTime;
             //Llamar al servicio IMO_STATUS_MSF010 usando el request del punto 6
-            if (falla == "") 
+            if (falla == "")
             {
                 try
                 {
@@ -452,7 +455,7 @@ namespace MatrizRiesgos.Controllers
                     };
                     genericScriptDTO.customAttributes = genericScriptSearchParam.customAttributes;
                     response = sendGeneric(oc, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
-    
+
                     try
                     {
                         if (response.data[0].atts[0].name.ToLower().Contains("json"))
@@ -466,7 +469,8 @@ namespace MatrizRiesgos.Controllers
                     {
                         timeParam = "0";
                     }
-                } catch (Exception e)
+                }
+                catch (Exception e)
                 {
                     mensaje = mensaje + e.Message;
                     jobjectResult = JObject.FromObject(new
@@ -477,7 +481,7 @@ namespace MatrizRiesgos.Controllers
                 }
             }
             //POWER BI
-            if (falla == "") 
+            if (falla == "")
             {
                 try
                 {
@@ -496,7 +500,8 @@ namespace MatrizRiesgos.Controllers
                         sendStatisticToPowerBI(json);
                         falla = "";
                     }
-                } catch (Exception ex)
+                }
+                catch (Exception ex)
                 {
                     mensaje = mensaje + ex.Message;
                     jobjectResult = JObject.FromObject(new
@@ -517,7 +522,8 @@ namespace MatrizRiesgos.Controllers
                 credentials.position + ";" +
                 mensaje + ";\n");
 
-            if (jobjectResult == null) {
+            if (jobjectResult == null)
+            {
                 jobjectResult = JObject.FromObject(new
                 {
                     code = "200",
@@ -526,7 +532,7 @@ namespace MatrizRiesgos.Controllers
             }
 
             return jobjectResult;
-        }        
+        }
 
         [AllowAnonymous]
         [HttpPost]
@@ -652,8 +658,9 @@ namespace MatrizRiesgos.Controllers
                 paramList.Add(CreateAttribute("modulo", moduleRunedAs));
             }
 
-            if (userRunedAs != null && posiRunedAs != null) {
-                RunAs runAs = new RunAs();
+            RunAs runAs = new RunAs();
+            if (userRunedAs != null && posiRunedAs != null)
+            {
                 runAs.district = opSheet.district;
                 runAs.user = userRunedAs.Split('@')[0];
                 //runAs.position = GetDefaultPositionBySQL(runAs.user);
@@ -678,7 +685,8 @@ namespace MatrizRiesgos.Controllers
             {
                 string tableType = directMapAction[scriptActionParam];
                 data = GetDirectGenericData(scriptActionParam, tableType);
-            } else
+            }
+            else
             {
                 data = GetEllipseGenericData(proxySheet, opSheet, genericScriptSearchParam, genericScriptDTO, credentials, intialDate);
             }
@@ -690,6 +698,13 @@ namespace MatrizRiesgos.Controllers
 
             credentials.scriptName = scriptNameParam;
             credentials.actionName = scriptActionParam;
+
+            if (userRunedAs != null && posiRunedAs != null)
+            {
+                credentials.username = userRunedAs.Split('@')[0];
+                credentials.position = posiRunedAs;
+            }
+
             if (credentials.attributeType.Equals("JSON"))
                 BuildRequestInfo(result, intialDate, credentials, GetRequestBody());
             else
@@ -721,7 +736,8 @@ namespace MatrizRiesgos.Controllers
             try
             {
                 prefix = scriptActionParam.Split(',')[1].ToLower();
-            } catch (Exception)
+            }
+            catch (Exception)
             {
                 prefix = scriptActionParam.Split('_')[0].ToLower();
             }
@@ -738,21 +754,21 @@ namespace MatrizRiesgos.Controllers
             }
             catch (Exception)
             {
-                
+
             }
 
             return tableTypeWithoutPrefix;
         }
 
-        private List<Util.EllRow> GetEllipseGenericData(GenericScriptService.GenericScriptService proxySheet, 
-            GenericScriptService.OperationContext opSheet, 
+        private List<Util.EllRow> GetEllipseGenericData(GenericScriptService.GenericScriptService proxySheet,
+            GenericScriptService.OperationContext opSheet,
             GenericScriptService.GenericScriptSearchParam genericScriptSearchParam,
-            GenericScriptService.GenericScriptDTO genericScriptDTO, 
+            GenericScriptService.GenericScriptDTO genericScriptDTO,
             Credentials credentials, DateTime intialDate)
         {
             List<Util.EllRow> data = new List<EllRow>();
             string errors = "";
-            
+
             GenericScriptService.GenericScriptServiceResult[] genericScriptServiceResults = proxySheet.executeForCollection(opSheet, genericScriptSearchParam, genericScriptDTO);
 
             foreach (GenericScriptService.GenericScriptServiceResult genericScriptServiceResult in genericScriptServiceResults)
@@ -790,7 +806,7 @@ namespace MatrizRiesgos.Controllers
                 {
                     string timeParam = GetParamValue(genericScriptServiceResults, "time");
 
-                    Info(intialDate.ToString(formatDate) + ";" + credentials.scriptName+ ";" + credentials.actionName + ";OK;" +
+                    Info(intialDate.ToString(formatDate) + ";" + credentials.scriptName + ";" + credentials.actionName + ";OK;" +
                         "0;" + GetTimeValue(timeParam) + ";" +
                         credentials.username + ";" +
                         credentials.district + ";" +
@@ -867,7 +883,7 @@ namespace MatrizRiesgos.Controllers
                 };
 
                 Util.HttpResponse<List<Util.EllRow>> result = sendGeneric(opSheet, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
-                return result;  
+                return result;
             }
             catch (Exception ex)
             {
@@ -1064,8 +1080,8 @@ namespace MatrizRiesgos.Controllers
             att3.name = "scriptName";
             att3.value = "coemdr";
             atts.Add(att3);
-            
-            Util.HttpResponse < List < Util.EllRow >> response = execute(atts, credentials);
+
+            Util.HttpResponse<List<Util.EllRow>> response = execute(atts, credentials);
             OrderData(response);
             return response;
         }
@@ -1083,7 +1099,8 @@ namespace MatrizRiesgos.Controllers
                     newRow.atts.Add(CreateUtilAttribute(row.atts[0].value, row.atts[1].value));
                 }
                 response.data = newRowList;
-            } catch (Exception )
+            }
+            catch (Exception)
             {
 
             }
@@ -1104,7 +1121,8 @@ namespace MatrizRiesgos.Controllers
             if (dataQuery.Count() > 0)
             {
                 return dataQuery[0]["EMPLOYEE_ID"].ToString();
-            } else
+            }
+            else
             {
                 return "";
             }
@@ -1155,7 +1173,8 @@ namespace MatrizRiesgos.Controllers
         private string GetAllRequestParam(GenericScriptService.Attribute[] atts)
         {
             string allAttributes = "";
-            foreach (GenericScriptService.Attribute item in atts) { 
+            foreach (GenericScriptService.Attribute item in atts)
+            {
                 allAttributes += "{" + item.name + ":" + item.value + "},";
             }
             if (allAttributes.Length > 1)
@@ -1188,7 +1207,7 @@ namespace MatrizRiesgos.Controllers
                 (mensaje.IndexOf("FAILED WITH HTTP STATUS") > 0) ||
                 (mensaje.IndexOf("CONNECTION WAS CLOSED") > 0) ||
                 (mensaje.IndexOf("UNDERLYING CONNECTION") > 0) ||
-                (mensaje.IndexOf("TIMED OUT") > 0) )
+                (mensaje.IndexOf("TIMED OUT") > 0))
             {
                 ok = true;
             }
@@ -1216,7 +1235,8 @@ namespace MatrizRiesgos.Controllers
             try
             {
                 headerText = HttpContext.Current.Request.Headers[headerParam];
-            } catch (Exception)
+            }
+            catch (Exception)
             {
                 headerText = null;
             }
@@ -1238,7 +1258,8 @@ namespace MatrizRiesgos.Controllers
                 if (value != null)
                 {
                     att.value = value.ToString();
-                } else
+                }
+                else
                 {
                     att.value = "";
                 }
@@ -1249,15 +1270,17 @@ namespace MatrizRiesgos.Controllers
         }
         private string GetTimeValue(string timeValue)
         {
-            string[] timePart= timeValue.Split(' ');
+            string[] timePart = timeValue.Split(' ');
             string result = "0";
             try
             {
                 double number = Double.Parse(timePart[0], CultureInfo.CreateSpecificCulture("en-AU")) * 1000;
                 result = number.ToString();
-            } catch (Exception)
+                previousTimeServer = result;
+            }
+            catch (Exception)
             {
-                result = "NaN:[" + timeValue + "]";
+                result = previousTimeServer;
             }
 
             return result;
@@ -1268,7 +1291,8 @@ namespace MatrizRiesgos.Controllers
             try
             {
                 return dictionary[parameter].ToString();
-            } catch (Exception)
+            }
+            catch (Exception)
             {
                 return "";
             }
@@ -1279,7 +1303,8 @@ namespace MatrizRiesgos.Controllers
             {
                 GenericScriptService.Attribute att = Array.Find(paramSearch.customAttributes, element => element.name.Equals(parameter));
                 return att.value;
-            } catch (Exception)
+            }
+            catch (Exception)
             {
                 return "";
             }
@@ -1313,7 +1338,8 @@ namespace MatrizRiesgos.Controllers
         {
             try
             {
-                foreach (EllRow ellRow in ellRows) {
+                foreach (EllRow ellRow in ellRows)
+                {
                     Util.Attribute att = Array.Find(ellRow.atts.ToArray(), element => element.name.Equals(parameter));
                     if (att != null)
                         return att.value;
@@ -1330,13 +1356,15 @@ namespace MatrizRiesgos.Controllers
         {
             try
             {
-                foreach (GenericScriptServiceResult paramResult in paramResults) {
+                foreach (GenericScriptServiceResult paramResult in paramResults)
+                {
                     GenericScriptService.Attribute att = Array.Find(paramResult.genericScriptDTO.customAttributes, element => element.name.Equals("json"));
                     if (att != null)
                     {
                         JObject json = JObject.Parse(att.value);
                         return GetParamValue(json, parameter);
-                    } else
+                    }
+                    else
                     {
                         att = Array.Find(paramResult.genericScriptDTO.customAttributes, element => element.name.Equals(parameter));
                         if (att != null)
@@ -1380,7 +1408,7 @@ namespace MatrizRiesgos.Controllers
             {
                 if (trace.Equals("Y"))
                 {
-                    log.Info(versionAPI + ";" + text.Replace("\r\n"," ").Replace("\n"," "));
+                    log.Info(versionAPI + ";" + text.Replace("\r\n", " ").Replace("\n", " "));
                 }
             }
         }
