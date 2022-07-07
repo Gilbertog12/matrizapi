@@ -12,6 +12,7 @@ using MatrizRiesgos.Controllers;
 using System.Net;
 using System.Net.Http;
 using System.IO;
+using System.DirectoryServices;
 
 namespace MatrizRiesgos
 {
@@ -35,6 +36,7 @@ namespace MatrizRiesgos
             string rawPassword = GetBodyPassword(requestBody);
             try
             {
+                
                 //context.OwinContext.Response.Headers.Add("Access-Control-Allow-Origin", new[] { "*" });
                 var identity = new ClaimsIdentity(context.Options.AuthenticationType);
 
@@ -77,13 +79,31 @@ namespace MatrizRiesgos
                 op.district = district;
                 op.position = position;
 
-                auth.authenticate(op);
-                identity.AddClaim(new Claim(ClaimTypes.Role, "admin"));
-                identity.AddClaim(new Claim("username", context.UserName));
-                identity.AddClaim(new Claim("pwd", EllipseWebServicesClient.ClientConversation.password));
-                identity.AddClaim(new Claim("district", district));
-                identity.AddClaim(new Claim("position", position));
-                context.Validated(identity);
+                String LDAPDomainName = GetLDAPDomainName();
+                bool userAuthenticated = false;
+
+                if (LDAPDomainName != null)
+                {
+                    userAuthenticated = AuthenticateUser(LDAPDomainName, context.UserName, context.Password);
+                } else
+                {
+                    auth.authenticate(op);
+                    userAuthenticated = true;
+                }
+
+                if (!userAuthenticated)
+                {
+                    context.SetError("invalid_grant", "Incorrect Credentials");
+                }
+                else
+                {
+                    identity.AddClaim(new Claim(ClaimTypes.Role, "admin"));
+                    identity.AddClaim(new Claim("username", context.UserName));
+                    identity.AddClaim(new Claim("pwd", EllipseWebServicesClient.ClientConversation.password));
+                    identity.AddClaim(new Claim("district", district));
+                    identity.AddClaim(new Claim("position", position));
+                    context.Validated(identity);
+                }
             }
             catch (Exception ex)
             {
@@ -171,6 +191,38 @@ namespace MatrizRiesgos
                 return null;
             }
 
+        }
+
+        private string GetLDAPDomainName() {
+            try
+            {
+                return WebConfigurationManager.AppSettings["LDAPDomainName"];
+            } catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        private bool AuthenticateUser(string domainName, string userName, string password)
+        {
+            bool ret = false;
+
+            try
+            {
+                DirectoryEntry de = new DirectoryEntry("LDAP://" + domainName, userName, password);
+                DirectorySearcher dsearch = new DirectorySearcher(de);
+                SearchResult results = null;
+
+                results = dsearch.FindOne();
+
+                ret = true;
+            }
+            catch
+            {
+                ret = false;
+            }
+
+            return ret;
         }
     }
 }

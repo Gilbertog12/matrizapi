@@ -37,13 +37,8 @@ namespace MatrizRiesgos.Util
         {
             try
             {
-                string dbHost = WebConfigurationManager.AppSettings["DBHOST"];
-                string dbPort = WebConfigurationManager.AppSettings["DBPORT"];
-                string dbServiceName = WebConfigurationManager.AppSettings["DBSERVICENAME"];
-                string dbUsername = WebConfigurationManager.AppSettings["DBUSERNAME"];
-                string dbPassword = WebConfigurationManager.AppSettings["DBPASSWORD"];
-                string connectionstring = "Data Source = (DESCRIPTION = (ADDRESS = (PROTOCOL = TCP)(HOST = " + dbHost + ")(PORT = " + dbPort + "))(CONNECT_DATA = (SERVICE_NAME = " + dbServiceName + "))); User Id = " + dbUsername + "; Password = " + dbPassword;
-
+                
+                string connectionstring = WebConfigurationManager.AppSettings["DBOraDataSource"];
                 return connectionstring;
             }
             catch (Exception)
@@ -139,10 +134,11 @@ namespace MatrizRiesgos.Util
             try
             {
                 sqlComm.Dispose();
-                dataReader.Close();
-                dataReader.Dispose();
-                sqlConn.Close();
-                sqlConn.Dispose();
+                try { dataReader.Close(); } catch (Exception) { }
+                try { dataReader.Dispose(); } catch (Exception) { }
+
+                try { sqlConn.Close(); } catch (Exception) { }
+                try { sqlConn.Dispose(); } catch (Exception) { }                
 
                 return true;
             }

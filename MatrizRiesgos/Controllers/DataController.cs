@@ -16,6 +16,7 @@ using NLog;
 using Newtonsoft.Json;
 using System.Globalization;
 /* Historia
+* 2022-06-12 v2.19 Se agrega condicion para establecer la autenticacion contra el Directorio Activo.
 * 2022-04-27 v2.18 Se uiliza acceso directo a la BD de replica para poder desplegar de forma rapida las listas desplegables.
 *                  Se crea clave DIRECTLIST en el WebConfig para determinar que servicios van a ser directos BD o indirectos coemdr.groovy
 * 2022-04-27 v2.17 Evitar acceso Oracle para obtener posicion, ahora viene en el header desde Cursor
@@ -63,7 +64,7 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.18";
+        readonly string versionAPI = "v2.19";
         //private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         Logger log = NLog.LogManager.GetCurrentClassLogger();
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
