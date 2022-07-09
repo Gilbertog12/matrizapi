@@ -10,6 +10,8 @@ namespace MatrizRiesgos.Util
     public class Credentials
     {
         private string _district = "";
+        private string _runasUsername = "";
+        private string _runasPosition = "";
 
         public string username { get; set; }
         public string password { get; set; }
@@ -22,6 +24,33 @@ namespace MatrizRiesgos.Util
         public string attributeType { get; set; }
         public string scriptName { get; set; }
         public string actionName { get; set; }
+
+        public string runasUsername { 
+            get {
+                if (this._runasUsername == null)
+                    return username;
+                else
+                    return this._runasUsername;
+            } 
+            set {
+                _runasUsername = value;
+            }
+        }
+
+        public string runasPosition
+        {
+            get
+            {
+                if (this._runasPosition == null)
+                    return position;
+                else
+                    return this._runasPosition;
+            }
+            set
+            {
+                _runasPosition = value;
+            }
+        }
     }
 
     public class BodyParams
@@ -51,5 +80,12 @@ namespace MatrizRiesgos.Util
         public bool success { get; set; }
         public string message { get; set; }
         public R data { get; set; }
+    }
+
+    public class Filelog
+    {
+        public string fileName { get; set; }
+        public string folderName { get; set; }
+        public string fullName { get; set; }
     }
 }

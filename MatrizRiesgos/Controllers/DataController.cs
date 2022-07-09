@@ -15,7 +15,12 @@ using System.Web;
 using NLog;
 using Newtonsoft.Json;
 using System.Globalization;
+using NLog.Targets;
+using NLog.Config;
+using NLog.Layouts;
+using System.Reflection;
 /* Historia
+* 2022-07-08 v2.21 Se agrega metodo para listar los logs dado una fecha.
 * 2022-07-07 v2.20 Se agrega log con el valor del RunAs si es pasado. Se agrega condicion para evitar el [NaN] al obtener el serverTime.
 * 2022-06-12 v2.19 Se agrega condicion para establecer la autenticacion contra el Directorio Activo.
 * 2022-04-27 v2.18 Se uiliza acceso directo a la BD de replica para poder desplegar de forma rapida las listas desplegables.
@@ -65,7 +70,7 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.20";
+        readonly string versionAPI = "v2.21";
         //private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         Logger log = NLog.LogManager.GetCurrentClassLogger();
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
@@ -78,6 +83,15 @@ namespace MatrizRiesgos.Controllers
         public IEnumerable<string> Get()
         {
             return new string[] { WebConfigurationManager.AppSettings["EllService"], "App Matriz API Versión " + versionAPI + " ... hora del servidor : " + DateTime.Now.ToString() };
+        }
+
+
+        [HttpGet]
+        [Route("logFileName")]
+        public List<Filelog> getLogFileName([FromUri] string logDate)
+        {
+            DateTime filterLogdate = DateTime.ParseExact(logDate, "yyyyMMdd", null);
+            return GetFileLogs(filterLogdate);
         }
 
         [Authorize]
@@ -159,7 +173,7 @@ namespace MatrizRiesgos.Controllers
                 if (reintentar) codigoError = "EX";
                 Info(intialDate.ToString(formatDate) + ";generic;genericException;" + codigoError + ";0;" +
                     spanMS + ";" +
-                    credentials.username + ";" +
+                    credentials.runasUsername + ";" +
                     credentials.district + ";" +
                     opSheet.position + ";" +
                     ex.Message + ";\n" + ex.StackTrace);
@@ -177,7 +191,7 @@ namespace MatrizRiesgos.Controllers
                         spanMS = (long)span.TotalMilliseconds;
                         Info(intialDate.ToString(formatDate) + ";generic;genericRetry;OR;" +
                             spanMS + ";0;" +
-                            credentials.username + ";" +
+                            credentials.runasUsername + ";" +
                             credentials.district + ";" +
                             opSheet.position + ";" +
                             allAttributes + ";" + ex.Message);
@@ -188,7 +202,7 @@ namespace MatrizRiesgos.Controllers
                         spanMS = (long)span.TotalMilliseconds;
                         Info(intialDate.ToString(formatDate) + ";generic;genericRetry;ER;" +
                             spanMS + ";0;" +
-                            credentials.username + ";" +
+                            credentials.runasUsername + ";" +
                             credentials.district + ";" +
                             opSheet.position + ";" +
                             allAttributes + ";" + ex2.Message + "\n" + ex2.StackTrace);
@@ -273,7 +287,7 @@ namespace MatrizRiesgos.Controllers
                 long spanMS = (long)span.TotalMilliseconds;
                 Info(intialDate.ToString(formatDate) + ";" + scriptNameParam + ";" + actionPparam + ";E6;" +
                     spanMS + ";0;" +
-                    credentials.username + ";" +
+                    credentials.runasUsername + ";" +
                     credentials.district + ";" +
                     opSheet.position + ";" +
                     allAttributes + ";" + ex.Message + "\n" + ex.StackTrace);
@@ -313,9 +327,9 @@ namespace MatrizRiesgos.Controllers
             long spanMS = (long)span.TotalMilliseconds;
             Info(intialDate.ToString(formatDate) + ";" + scriptNameParam + ";" + actionPparam + ";OK;" +
                 spanMS + ";" + GetTimeValue(time) + ";" +
-                credentials.username + ";" +
+                credentials.runasUsername + ";" +
                 credentials.district + ";" +
-                credentials.position + ";" +
+                credentials.runasPosition + ";" +
                 allAttributes);
         }
 
@@ -517,9 +531,9 @@ namespace MatrizRiesgos.Controllers
 
             Info(intialDate.ToString(formatDate) + ";MatrizApi;monitor;OK;" +
                 spanMS + ";0;" +
-                credentials.username + ";" +
+                credentials.runasUsername + ";" +
                 credentials.district + ";" +
-                credentials.position + ";" +
+                credentials.runasPosition + ";" +
                 mensaje + ";\n");
 
             if (jobjectResult == null)
@@ -666,6 +680,10 @@ namespace MatrizRiesgos.Controllers
                 //runAs.position = GetDefaultPositionBySQL(runAs.user);
                 runAs.position = posiRunedAs;
                 opSheet.runAs = runAs;
+
+                credentials.runasUsername = userRunedAs.Split('@')[0];
+                credentials.runasPosition = posiRunedAs;
+                
             }
 
             genericScriptSearchParam.customAttributes = paramList.ToArray();
@@ -698,12 +716,6 @@ namespace MatrizRiesgos.Controllers
 
             credentials.scriptName = scriptNameParam;
             credentials.actionName = scriptActionParam;
-
-            if (userRunedAs != null && posiRunedAs != null)
-            {
-                credentials.username = userRunedAs.Split('@')[0];
-                credentials.position = posiRunedAs;
-            }
 
             if (credentials.attributeType.Equals("JSON"))
                 BuildRequestInfo(result, intialDate, credentials, GetRequestBody());
@@ -808,9 +820,9 @@ namespace MatrizRiesgos.Controllers
 
                     Info(intialDate.ToString(formatDate) + ";" + credentials.scriptName + ";" + credentials.actionName + ";OK;" +
                         "0;" + GetTimeValue(timeParam) + ";" +
-                        credentials.username + ";" +
+                        credentials.runasUsername + ";" +
                         credentials.district + ";" +
-                        credentials.position + ";" +
+                        credentials.runasPosition + ";" +
                         " " + data[0].atts[0].value);
 
                     if (data[0].atts[0].name == "type" && data[0].atts[0].value == "E")
@@ -891,9 +903,9 @@ namespace MatrizRiesgos.Controllers
                 long spanMS = (long)span.TotalMilliseconds;
                 Info(intialDate.ToString(formatDate) + ";execute;E8;" +
                     spanMS + ";0;" +
-                    credentials.username + ";" +
+                    credentials.runasUsername + ";" +
                     credentials.district + ";" +
-                    credentials.position + ";" +
+                    credentials.runasPosition + ";" +
                     ex.Message + ";\n" + ex.StackTrace);
                 row.atts.Add(new Util.Attribute() { name = "ERROR", value = "ERROR AL EJECUTAR EL PROCEDIMIENTO" });
                 data.Add(row);
@@ -985,7 +997,7 @@ namespace MatrizRiesgos.Controllers
                 long spanMS = (long)span.TotalMilliseconds;
                 Info(intialDate.ToString(formatDate) + ";MatrizApi;GetDefaultDistrict;E1;" +
                     spanMS + ";0;" +
-                    credentials.username + ";" +
+                    credentials.runasUsername + ";" +
                     "<dstr>" + ";" +
                     "<pos>" + ";" +
                     ex.Message + ";\n" + ex.StackTrace);
@@ -1053,7 +1065,7 @@ namespace MatrizRiesgos.Controllers
                 long spanMS = (long)span.TotalMilliseconds;
                 Info(intialDate.ToString(formatDate) + ";GetDefaultPosition;E2;" +
                     spanMS + ";0;" +
-                    credentials.username + ";" +
+                    credentials.runasUsername + ";" +
                     "<dstr>" + ";" +
                     "<pos>" + ";" +
                     ex.Message + ";\n" + ex.StackTrace);
@@ -1351,6 +1363,42 @@ namespace MatrizRiesgos.Controllers
             }
 
             return "";
+        }
+
+        private List<Filelog> GetFileLogs(DateTime filterLogDate)
+        {
+            List<Filelog> logFiles = new List<Filelog>();
+            string baseDirectory = HttpContext.Current.Server.MapPath(".") + "\\";
+            string baseDirectoryFilename = "";
+            string logFilePattern = "";
+            string logDirectory = "";
+
+            List<FileTarget> files = LogManager.Configuration?
+                .AllTargets
+                .OfType<FileTarget>()
+                .ToList();
+            foreach (FileTarget file in files)
+            {
+                string relativePath = @file.ArchiveFileName.ToString().Replace("'", "");
+                baseDirectoryFilename = Path.GetFullPath(baseDirectory + relativePath.Replace("\\\\", "\\"));
+                logFilePattern = Path.GetFileName(baseDirectoryFilename);
+                logDirectory = Directory.GetParent(baseDirectoryFilename).FullName;
+
+                foreach (string fileLog in Directory.GetFiles(logDirectory))
+                {
+                    DateTime fileDate = File.GetCreationTime(fileLog).Date;
+                    if (filterLogDate.Equals(fileDate))
+                    {
+                        Filelog log = new Filelog();
+                        log.fullName = fileLog;
+                        log.folderName = logDirectory;
+                        log.fileName = Path.GetFileName(fileLog);
+                        logFiles.Add(log);
+                    }
+                }
+            }
+
+            return logFiles;
         }
         private string GetParamValue(GenericScriptServiceResult[] paramResults, string parameter)
         {
