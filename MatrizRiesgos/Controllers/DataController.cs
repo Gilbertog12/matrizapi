@@ -19,7 +19,9 @@ using NLog.Targets;
 using NLog.Config;
 using NLog.Layouts;
 using System.Reflection;
+using System.Net.Http.Headers;
 /* Historia
+* 2022-07-08 v2.22 Se agrega metodo para descargar un log dado el nombre del archivo.
 * 2022-07-08 v2.21 Se agrega metodo para listar los logs dado una fecha.
 * 2022-07-07 v2.20 Se agrega log con el valor del RunAs si es pasado. Se agrega condicion para evitar el [NaN] al obtener el serverTime.
 * 2022-06-12 v2.19 Se agrega condicion para establecer la autenticacion contra el Directorio Activo.
@@ -87,11 +89,30 @@ namespace MatrizRiesgos.Controllers
 
 
         [HttpGet]
-        [Route("logFileName")]
-        public List<Filelog> getLogFileName([FromUri] string logDate)
+        [Route("api/log/list")]
+        public List<Filelog> getLogFileName([FromUri] string logDateFrom, [FromUri] string logDateTo)
         {
-            DateTime filterLogdate = DateTime.ParseExact(logDate, "yyyyMMdd", null);
-            return GetFileLogs(filterLogdate);
+            DateTime filterLogDateFrom = DateTime.ParseExact(logDateFrom, "yyyyMMdd", null);
+            DateTime filterLogDateTo = DateTime.ParseExact(logDateTo, "yyyyMMdd", null);
+            return GetFileLogs(filterLogDateFrom, filterLogDateTo);
+        }
+
+        [HttpGet]
+        [Route("api/log/download")]
+        public HttpResponseMessage GetFile([FromUri]  string fileName)
+        {
+            if (String.IsNullOrEmpty(fileName))
+                return Request.CreateResponse(HttpStatusCode.BadRequest);
+
+            string localFilePath = GetFileFromName(fileName);
+
+            HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
+            response.Content = new StreamContent(new FileStream(localFilePath, FileMode.Open, FileAccess.Read));
+            response.Content.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("attachment");
+            response.Content.Headers.ContentDisposition.FileName = fileName;
+            response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/txt");
+
+            return response;
         }
 
         [Authorize]
@@ -1365,10 +1386,12 @@ namespace MatrizRiesgos.Controllers
             return "";
         }
 
-        private List<Filelog> GetFileLogs(DateTime filterLogDate)
+        private List<Filelog> GetFileLogs(DateTime filterLogDateFrom, DateTime filterLogDateTo)
         {
             List<Filelog> logFiles = new List<Filelog>();
             string baseDirectory = HttpContext.Current.Server.MapPath(".") + "\\";
+            baseDirectory = baseDirectory.Replace("api\\log", "");
+
             string baseDirectoryFilename = "";
             string logFilePattern = "";
             string logDirectory = "";
@@ -1377,17 +1400,24 @@ namespace MatrizRiesgos.Controllers
                 .AllTargets
                 .OfType<FileTarget>()
                 .ToList();
+            
             foreach (FileTarget file in files)
             {
                 string relativePath = @file.ArchiveFileName.ToString().Replace("'", "");
-                baseDirectoryFilename = Path.GetFullPath(baseDirectory + relativePath.Replace("\\\\", "\\"));
+                baseDirectoryFilename = Path.GetFullPath(baseDirectory +  relativePath.Replace("\\\\", "\\"));
                 logFilePattern = Path.GetFileName(baseDirectoryFilename);
                 logDirectory = Directory.GetParent(baseDirectoryFilename).FullName;
-
+                Info("LOG DIRECTORY " + logDirectory);
+                Info("BASEDIRECTORY " + baseDirectory);
+                
                 foreach (string fileLog in Directory.GetFiles(logDirectory))
                 {
-                    DateTime fileDate = File.GetCreationTime(fileLog).Date;
-                    if (filterLogDate.Equals(fileDate))
+                    DateTime fileDate = File.GetCreationTime(fileLog);
+                    if (
+                        (DateTime.Compare(fileDate.Date, filterLogDateFrom.Date) == 1 || DateTime.Compare(fileDate.Date, filterLogDateFrom.Date) == 0) &&
+                        (DateTime.Compare(fileDate.Date, filterLogDateTo.Date) < 0 || DateTime.Compare(fileDate.Date, filterLogDateTo.Date) == 0) 
+                       )
+                       
                     {
                         Filelog log = new Filelog();
                         log.fullName = fileLog;
@@ -1400,6 +1430,34 @@ namespace MatrizRiesgos.Controllers
 
             return logFiles;
         }
+
+        private string GetFileFromName(string fileName)
+        {
+            List<Filelog> logFiles = new List<Filelog>();
+            string baseDirectory = HttpContext.Current.Server.MapPath(".") + "\\";
+            baseDirectory = baseDirectory.Replace("api\\log", "");
+            string baseDirectoryFilename = "";
+            string logFilePattern = "";
+            string logDirectory = "";
+
+            List<FileTarget> files = LogManager.Configuration?
+                .AllTargets
+                .OfType<FileTarget>()
+                .ToList();
+
+            foreach (FileTarget file in files)
+            {
+                string relativePath = @file.ArchiveFileName.ToString().Replace("'", "");
+                baseDirectoryFilename = Path.GetFullPath(baseDirectory + relativePath.Replace("\\\\", "\\"));
+                logFilePattern = Path.GetFileName(baseDirectoryFilename);
+                logDirectory = Directory.GetParent(baseDirectoryFilename).FullName;
+
+                return logDirectory + "\\" + fileName;
+            }
+
+            return null;
+        }
+
         private string GetParamValue(GenericScriptServiceResult[] paramResults, string parameter)
         {
             try

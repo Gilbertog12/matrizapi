@@ -84,6 +84,15 @@ namespace MatrizRiesgos.Util
 
     public class Filelog
     {
+        public Filelog()
+        {
+        }
+
+        public Filelog(string filename)
+        {
+            this.fileName = filename;
+        }
+
         public string fileName { get; set; }
         public string folderName { get; set; }
         public string fullName { get; set; }
