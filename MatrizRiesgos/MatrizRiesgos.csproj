@@ -234,7 +234,9 @@
     <Compile Include="Startup.cs" />
     <Compile Include="Connection\IConnection.cs" />
     <Compile Include="Connection\ConnectionOracleImpl.cs" />
+    <Compile Include="Util\APIRequest.cs" />
     <Compile Include="Util\Common.cs" />
+    <Compile Include="Util\CDDIntegration.cs" />
     <Compile Include="Web References\AuthenticatorService\Reference.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

@@ -20,7 +20,9 @@ using NLog.Config;
 using NLog.Layouts;
 using System.Reflection;
 using System.Net.Http.Headers;
+using System.Collections;
 /* Historia
+* 2022-07-24 v2.23 Se agregan metodo para notificacion via PUSH.
 * 2022-07-08 v2.22 Se agrega metodo para descargar un log dado el nombre del archivo.
 * 2022-07-08 v2.21 Se agrega metodo para listar los logs dado una fecha.
 * 2022-07-07 v2.20 Se agrega log con el valor del RunAs si es pasado. Se agrega condicion para evitar el [NaN] al obtener el serverTime.
@@ -72,7 +74,7 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.21";
+        readonly string versionAPI = "v2.23";
         //private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         Logger log = NLog.LogManager.GetCurrentClassLogger();
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
@@ -87,6 +89,22 @@ namespace MatrizRiesgos.Controllers
             return new string[] { WebConfigurationManager.AppSettings["EllService"], "App Matriz API Versión " + versionAPI + " ... hora del servidor : " + DateTime.Now.ToString() };
         }
 
+        [HttpPost]
+        [Route("api/cdd/uploadFile")]
+        public JObject uploadFile(JObject inputParam)
+        {
+            string initialConfig = WebConfigurationManager.AppSettings["CDDIntegration"];
+            MatrizRiesgos.Util.CDDIntegration cdd = new MatrizRiesgos.Util.CDDIntegration(initialConfig);
+            cdd.Login();
+            cdd.upload();
+
+            JObject json = JObject.FromObject(new
+            {
+                error = "Error inesperado: "
+            });
+
+            return json;
+        }
 
         [HttpGet]
         [Route("api/log/list")]
@@ -563,6 +581,133 @@ namespace MatrizRiesgos.Controllers
                 {
                     code = "200",
                     menssage = "MONITOREO EFECTUADO CORRECTAMENTE"
+                });
+            }
+
+            return jobjectResult;
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        [Route("api/values/notification")]
+        public JObject notification([FromBody] JObject data)
+        {
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+            Util.HttpResponse<List<Util.EllRow>> response = new HttpResponse<List<EllRow>>();
+            DateTime intialDate = DateTime.Now;
+
+            JObject jobjectResult = null;
+            string messageResponse = "";
+            string messageCode = "";
+            string apps  = WebConfigurationManager.AppSettings["CursorPUSHApp"];
+            Credentials credentials = new Credentials();
+            credentials.username = WebConfigurationManager.AppSettings["EllipseUsername"];
+            credentials.password = WebConfigurationManager.AppSettings["EllipsePassword"];
+            credentials.district = WebConfigurationManager.AppSettings["EllipseDistrict"];
+            credentials.position = WebConfigurationManager.AppSettings["EllipsePosition"];
+            credentials.attributeType = "JSON";
+
+            OperationContext oc = new OperationContext();
+            oc.district = credentials.district;
+            oc.position = credentials.position;
+            foreach (string app in apps.Split(','))
+            {
+                GenericScriptService.GenericScriptService proxySheet = new GenericScriptService.GenericScriptService();
+                proxySheet.Url = WebConfigurationManager.AppSettings["EllService"] + "GenericScriptService";
+                //IMO_BUSCAR_NOTIFICACIONES
+                GenericScriptService.GenericScriptSearchParam genericScriptSearchParam = new GenericScriptService.GenericScriptSearchParam();
+                genericScriptSearchParam.customAttributes = new GenericScriptService.Attribute[]
+                {
+                    CreateAttribute("scriptName","coeimo"),
+                    CreateAttribute("action","IMO_BUSCAR_NOTIFICACIONES"),
+                    CreateAttribute("programa",app)
+                };
+
+                GenericScriptService.GenericScriptDTO genericScriptDTO = new GenericScriptService.GenericScriptDTO();
+                genericScriptDTO.customAttributes = genericScriptSearchParam.customAttributes;
+                genericScriptDTO.scriptName = "coeimo";
+
+                JObject jsonMessageNotifcation = null;
+
+                try
+                {
+                    response = sendGeneric(oc, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
+
+                    if (response.data[0].atts[0].name.ToLower().Contains("json"))
+                    {
+                        jsonMessageNotifcation = JObject.Parse(response.data[0].atts[0].value);
+                        jsonMessageNotifcation["version"].Parent.Remove();
+                        jsonMessageNotifcation["time"].Parent.Remove();
+                    }
+                }
+                catch (Exception)
+                {
+                }
+
+                if (!jsonMessageNotifcation.GetValue("programa").ToString().Equals(""))
+                {
+                    //Enviar notificaciones a Cursor
+                    APIRequest notificationAPI = new APIRequest();
+                    notificationAPI.ContentType = "application/json";
+                    notificationAPI.UrlAPI = WebConfigurationManager.AppSettings["CursorPUSHUrl"];
+                    notificationAPI.Method = "POST";
+                    notificationAPI.AddHeaderParam("X-Secret", WebConfigurationManager.AppSettings["CursorPUSHKey"]);
+                    notificationAPI.BodyParams = jsonMessageNotifcation.ToString();
+                    JObject jsonResponse = notificationAPI.SendRequest();
+
+                    if (!notificationAPI.ErrorFound)
+                    {
+
+                        //IMO_ACTUALIZAR_NOTIFICACIONES
+                        List<MatrizRiesgos.GenericScriptService.Attribute> listAttribute = new List<GenericScriptService.Attribute>();
+                        listAttribute.Add(CreateAttribute("scriptName", "coeimo"));
+                        listAttribute.Add(CreateAttribute("action", "IMO_ACTUALIZAR_NOTIFICACIONES"));
+                        listAttribute.Add(CreateAttribute("success", jsonResponse.GetValue("success").ToString()));
+                        IEnumerator enumerator = jsonMessageNotifcation.Properties().GetEnumerator();
+                        while (enumerator.MoveNext())
+                        {
+                            JProperty item = (JProperty)enumerator.Current;
+                            listAttribute.Add(CreateAttribute(item.Name, item.Value.ToString()));
+                        }
+
+                        genericScriptSearchParam.customAttributes = listAttribute.ToArray();
+                        genericScriptDTO.customAttributes = genericScriptSearchParam.customAttributes;
+                        try
+                        {
+                            response = sendGeneric(oc, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
+
+                            if (response.data[0].atts[0].name.ToLower().Contains("json"))
+                            {
+                                jsonMessageNotifcation = JObject.Parse(response.data[0].atts[0].value);
+                            }
+                            jobjectResult = jsonMessageNotifcation;
+                        }
+                        catch (Exception ex)
+                        {
+                            messageCode = "400";
+                            messageResponse = ex.Message;
+                        }
+
+                    }
+                    else
+                    {
+                        messageCode = "400";
+                        messageResponse = notificationAPI.ErrorMessage;
+                    }
+                }
+                else
+                {
+                    messageCode = "200";
+                    messageResponse = "ITERACION REALIZADA CORRECTAMENNTE";
+                }
+            } 
+
+            if (jobjectResult == null)
+            {
+                jobjectResult = JObject.FromObject(new
+                {
+                    code = messageCode,
+                    menssage = messageResponse
                 });
             }
 
@@ -1255,9 +1400,16 @@ namespace MatrizRiesgos.Controllers
         }
         public static string GetRequestBody()
         {
-            var bodyStream = new StreamReader(HttpContext.Current.Request.InputStream);
-            bodyStream.BaseStream.Seek(0, SeekOrigin.Begin);
-            var bodyText = bodyStream.ReadToEnd();
+            var bodyText = "";
+            try
+            {
+                var bodyStream = new StreamReader(HttpContext.Current.Request.InputStream);
+                bodyStream.BaseStream.Seek(0, SeekOrigin.Begin);
+                bodyText = bodyStream.ReadToEnd();
+            } catch (Exception)
+            {
+
+            }
             return bodyText;
         }
 
@@ -1521,4 +1673,13 @@ namespace MatrizRiesgos.Controllers
 
     }
 
+    internal class CDDIntegration
+    {
+        private string initialConfig;
+
+        public CDDIntegration(string initialConfig)
+        {
+            this.initialConfig = initialConfig;
+        }
+    }
 }

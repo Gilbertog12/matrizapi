@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace MatrizRiesgos.Util
 {
+    
     public class Credentials
     {
         private string _district = "";
@@ -97,4 +98,5 @@ namespace MatrizRiesgos.Util
         public string folderName { get; set; }
         public string fullName { get; set; }
     }
+
 }
