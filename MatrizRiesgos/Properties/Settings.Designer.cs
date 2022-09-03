@@ -22,25 +22,5 @@ namespace MatrizRiesgos.Properties {
                 return defaultInstance;
             }
         }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.WebServiceUrl)]
-        [global::System.Configuration.DefaultSettingValueAttribute("http://ellipse-elldeve.elldeve.collahuasi.cl/ews/services/AuthenticatorService")]
-        public string MatrizRiesgos_AuthenticatorService_AuthenticatorService {
-            get {
-                return ((string)(this["MatrizRiesgos_AuthenticatorService_AuthenticatorService"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.WebServiceUrl)]
-        [global::System.Configuration.DefaultSettingValueAttribute("http://ellipse-elldeve.elldeve.collahuasi.cl/ews/services/GenericScriptService")]
-        public string MatrizRiesgos_GenericScriptService_GenericScriptService {
-            get {
-                return ((string)(this["MatrizRiesgos_GenericScriptService_GenericScriptService"]));
-            }
-        }
     }
 }

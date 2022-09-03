@@ -1,0 +1,5 @@
+C:\Trabajos\Desarrollos\VS\matrizapi\EllipseWebServicesClient\bin\Debug\EllipseWebServicesClient.dll
+C:\Trabajos\Desarrollos\VS\matrizapi\EllipseWebServicesClient\bin\Debug\EllipseWebServicesClient.pdb
+C:\Trabajos\Desarrollos\VS\matrizapi\EllipseWebServicesClient\obj\x86\Debug\EllipseWebServicesClient.csproj.CoreCompileInputs.cache
+C:\Trabajos\Desarrollos\VS\matrizapi\EllipseWebServicesClient\obj\x86\Debug\EllipseWebServicesClient.dll
+C:\Trabajos\Desarrollos\VS\matrizapi\EllipseWebServicesClient\obj\x86\Debug\EllipseWebServicesClient.pdb
