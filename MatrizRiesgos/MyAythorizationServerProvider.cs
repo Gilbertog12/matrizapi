@@ -13,8 +13,6 @@ using System.Net;
 using System.Net.Http;
 using System.IO;
 using System.DirectoryServices;
-using System.ServiceModel;
-using EllipseWebServicesClient;
 
 namespace MatrizRiesgos
 {
@@ -42,11 +40,9 @@ namespace MatrizRiesgos
                 //context.OwinContext.Response.Headers.Add("Access-Control-Allow-Origin", new[] { "*" });
                 var identity = new ClaimsIdentity(context.Options.AuthenticationType);
 
-                AuthenticatorService1.AuthenticatorClient auth = new AuthenticatorService1.AuthenticatorClient();
-                auth.ChannelFactory.Endpoint.Address = new EndpointAddress(WebConfigurationManager.AppSettings["EllService"] + "AuthenticatorService");
-                auth.Endpoint.Behaviors.Add(new EllipseWebServicesClient.AuthenticationExtensionBehavior());
-
-                AuthenticatorService1.OperationContext op = new AuthenticatorService1.OperationContext();
+                AuthenticatorService.AuthenticatorService auth = new AuthenticatorService.AuthenticatorService();
+                auth.Url = WebConfigurationManager.AppSettings["EllService"] + "AuthenticatorService";
+                AuthenticatorService.OperationContext op = new AuthenticatorService.OperationContext();
 
                 IFormCollection parameters = await context.Request.ReadFormAsync();
                 var district = parameters.Get("district");
@@ -148,16 +144,16 @@ namespace MatrizRiesgos
 
         public String GetDefaultPosition(String username, String password)
         {
-            AuthenticatorService1.AuthenticatorClient authService = new AuthenticatorService1.AuthenticatorClient();
-            AuthenticatorService1.OperationContext oc = new AuthenticatorService1.OperationContext();
+            AuthenticatorService.AuthenticatorService authService = new AuthenticatorService.AuthenticatorService();
+            AuthenticatorService.OperationContext oc = new AuthenticatorService.OperationContext();
 
             EllipseWebServicesClient.ClientConversation.username = username;
             EllipseWebServicesClient.ClientConversation.password = password;
 
             try
             {
-                AuthenticatorService1.NameValuePair[] pairs = authService.getPositions(oc);
-                foreach (AuthenticatorService1.NameValuePair pair in pairs)
+                AuthenticatorService.NameValuePair[] pairs = authService.getPositions(oc);
+                foreach (AuthenticatorService.NameValuePair pair in pairs)
                 {
                     return pair.name;
 
@@ -173,16 +169,16 @@ namespace MatrizRiesgos
 
         public String GetDefaultDistrict(String username, String password)
         {
-            AuthenticatorService1.AuthenticatorClient authService = new AuthenticatorService1.AuthenticatorClient();
-            AuthenticatorService1.OperationContext oc = new AuthenticatorService1.OperationContext();
+            AuthenticatorService.AuthenticatorService authService = new AuthenticatorService.AuthenticatorService();
+            AuthenticatorService.OperationContext oc = new AuthenticatorService.OperationContext();
 
             EllipseWebServicesClient.ClientConversation.username = username;
             EllipseWebServicesClient.ClientConversation.password = password;
 
             try
             {
-                AuthenticatorService1.NameValuePair[] pairs = authService.getDistricts(oc);
-                foreach (AuthenticatorService1.NameValuePair pair in pairs)
+                AuthenticatorService.NameValuePair[] pairs = authService.getDistricts(oc);
+                foreach (AuthenticatorService.NameValuePair pair in pairs)
                 {
                     return pair.name;
 

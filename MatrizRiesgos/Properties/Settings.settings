@@ -1,5 +1,12 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)">
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="MatrizRiesgos.Properties" GeneratedClassName="Settings">
   <Profiles />
-  <Settings />
+  <Settings>
+    <Setting Name="MatrizRiesgos_AuthenticatorService_AuthenticatorService" Type="(Web Service URL)" Scope="Application">
+      <Value Profile="(Default)">http://ellipse-elldeve.elldeve.collahuasi.cl/ews/services/AuthenticatorService</Value>
+    </Setting>
+    <Setting Name="MatrizRiesgos_GenericScriptService_GenericScriptService" Type="(Web Service URL)" Scope="Application">
+      <Value Profile="(Default)">http://ellipse-elldeve.elldeve.collahuasi.cl/ews/services/GenericScriptService</Value>
+    </Setting>
+  </Settings>
 </SettingsFile>

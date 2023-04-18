@@ -45,6 +45,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="EllipseWebServicesClient, Version=0.0.0.0, Culture=neutral, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Libraries\EllipseWebServicesClient.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.AI.Agent.Intercept, Version=1.2.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.ApplicationInsights.Agent.Intercept.1.2.1\lib\net45\Microsoft.AI.Agent.Intercept.dll</HintPath>
       <Private>True</Private>
@@ -207,55 +211,6 @@
     <Content Include="Libraries\EllipseWebServicesClient.dll" />
     <Content Include="scripts\ai.0.22.9-build00167.js" />
     <Content Include="scripts\ai.0.22.9-build00167.min.js" />
-    <None Include="Service References\AuthenticatorService1\AuthenticatorService.wsdl" />
-    <Content Include="Service References\AuthenticatorService1\MatrizRiesgos.AuthenticatorService1.NameValuePair.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
-    <None Include="Service References\GenericScriptService1\configuration91.svcinfo" />
-    <None Include="Service References\GenericScriptService1\configuration.svcinfo" />
-    <None Include="Service References\AuthenticatorService1\configuration91.svcinfo" />
-    <None Include="Service References\AuthenticatorService1\configuration.svcinfo" />
-    <None Include="Service References\AuthenticatorService1\Reference.svcmap">
-      <Generator>WCF Proxy Generator</Generator>
-      <LastGenOutput>Reference.cs</LastGenOutput>
-    </None>
-    <Content Include="Service References\GenericScriptService1\MatrizRiesgos.GenericScriptService1.createResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
-    <Content Include="Service References\GenericScriptService1\MatrizRiesgos.GenericScriptService1.deleteResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
-    <Content Include="Service References\GenericScriptService1\MatrizRiesgos.GenericScriptService1.executeForCollectionResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
-    <Content Include="Service References\GenericScriptService1\MatrizRiesgos.GenericScriptService1.executeResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
-    <Content Include="Service References\GenericScriptService1\MatrizRiesgos.GenericScriptService1.GenericScriptServiceResult.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
-    <Content Include="Service References\GenericScriptService1\MatrizRiesgos.GenericScriptService1.getTypesResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
-    <Content Include="Service References\GenericScriptService1\MatrizRiesgos.GenericScriptService1.multipleCreateResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
-    <Content Include="Service References\GenericScriptService1\MatrizRiesgos.GenericScriptService1.multipleDeleteResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
-    <Content Include="Service References\GenericScriptService1\MatrizRiesgos.GenericScriptService1.multipleExecuteResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
-    <Content Include="Service References\GenericScriptService1\MatrizRiesgos.GenericScriptService1.multipleUpdateResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
-    <Content Include="Service References\GenericScriptService1\MatrizRiesgos.GenericScriptService1.updateResponse.datasource">
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Content>
-    <None Include="Service References\GenericScriptService1\Reference.svcmap">
-      <Generator>WCF Proxy Generator</Generator>
-      <LastGenOutput>Reference.cs</LastGenOutput>
-    </None>
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
@@ -276,22 +231,22 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="Service References\AuthenticatorService1\Reference.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Compile>
-    <Compile Include="Service References\GenericScriptService1\Reference.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Reference.svcmap</DependentUpon>
-    </Compile>
     <Compile Include="Startup.cs" />
     <Compile Include="Connection\IConnection.cs" />
     <Compile Include="Connection\ConnectionOracleImpl.cs" />
     <Compile Include="Util\APIRequest.cs" />
     <Compile Include="Util\Common.cs" />
     <Compile Include="Util\CDDIntegration.cs" />
+    <Compile Include="Web References\AuthenticatorService\Reference.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Reference.map</DependentUpon>
+    </Compile>
+    <Compile Include="Web References\GenericScriptService\Reference.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Reference.map</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Content Include="Views\web.config" />
@@ -304,7 +259,22 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
-    <None Include="Service References\GenericScriptService1\GenericScriptService.wsdl" />
+    <None Include="Web References\AuthenticatorService\AuthenticatorService.wsdl" />
+    <Content Include="Web References\AuthenticatorService\NameValuePair.datasource">
+      <DependentUpon>Reference.map</DependentUpon>
+    </Content>
+    <Content Include="Web References\AuthenticatorService\Reference.map">
+      <Generator>MSDiscoCodeGenerator</Generator>
+      <LastGenOutput>Reference.cs</LastGenOutput>
+    </Content>
+    <None Include="Web References\GenericScriptService\GenericScriptService.wsdl" />
+    <Content Include="Web References\GenericScriptService\GenericScriptServiceResult.datasource">
+      <DependentUpon>Reference.map</DependentUpon>
+    </Content>
+    <Content Include="Web References\GenericScriptService\Reference.map">
+      <Generator>MSDiscoCodeGenerator</Generator>
+      <LastGenOutput>Reference.cs</LastGenOutput>
+    </Content>
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
@@ -323,14 +293,28 @@
     <WebReferences Include="Web References\" />
   </ItemGroup>
   <ItemGroup>
-    <WCFMetadataStorage Include="Service References\AuthenticatorService1\" />
-    <WCFMetadataStorage Include="Service References\GenericScriptService1\" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\EllipseWebServicesClient\EllipseWebServicesClient.csproj">
-      <Project>{a0a692bb-69c9-4168-8ad3-551a6837acf1}</Project>
-      <Name>EllipseWebServicesClient</Name>
-    </ProjectReference>
+    <WebReferenceUrl Include="http://ellipse-elldeve.elldeve.collahuasi.cl/ews/services/AuthenticatorService%3fWSDL">
+      <UrlBehavior>Dynamic</UrlBehavior>
+      <RelPath>Web References\AuthenticatorService\</RelPath>
+      <UpdateFromURL>http://ellipse-elldeve.elldeve.collahuasi.cl/ews/services/AuthenticatorService%3fWSDL</UpdateFromURL>
+      <ServiceLocationURL>
+      </ServiceLocationURL>
+      <CachedDynamicPropName>
+      </CachedDynamicPropName>
+      <CachedAppSettingsObjectName>Settings</CachedAppSettingsObjectName>
+      <CachedSettingsPropName>MatrizRiesgos_AuthenticatorService_AuthenticatorService</CachedSettingsPropName>
+    </WebReferenceUrl>
+    <WebReferenceUrl Include="http://ellipse-elldeve.elldeve.collahuasi.cl/ews/services/GenericScriptService%3fWSDL">
+      <UrlBehavior>Dynamic</UrlBehavior>
+      <RelPath>Web References\GenericScriptService\</RelPath>
+      <UpdateFromURL>http://ellipse-elldeve.elldeve.collahuasi.cl/ews/services/GenericScriptService%3fWSDL</UpdateFromURL>
+      <ServiceLocationURL>
+      </ServiceLocationURL>
+      <CachedDynamicPropName>
+      </CachedDynamicPropName>
+      <CachedAppSettingsObjectName>Settings</CachedAppSettingsObjectName>
+      <CachedSettingsPropName>MatrizRiesgos_GenericScriptService_GenericScriptService</CachedSettingsPropName>
+    </WebReferenceUrl>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
