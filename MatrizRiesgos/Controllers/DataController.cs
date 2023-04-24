@@ -22,6 +22,7 @@ using System.Reflection;
 using System.Net.Http.Headers;
 using System.Collections;
 /* Historia
+ * * 2022-07-24 v2.23a Llamar IMO_BUSCAR_NOTIFICACIONES en un loop
 * 2022-07-24 v2.23 Se agregan metodo para notificacion via PUSH.
 * 2022-07-08 v2.22 Se agrega metodo para descargar un log dado el nombre del archivo.
 * 2022-07-08 v2.21 Se agrega metodo para listar los logs dado una fecha.
@@ -74,7 +75,7 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.23";
+        readonly string versionAPI = "v2.23a";
         //private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         Logger log = NLog.LogManager.GetCurrentClassLogger();
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
@@ -612,106 +613,118 @@ namespace MatrizRiesgos.Controllers
             oc.position = credentials.position;
             foreach (string app in apps.Split(','))
             {
-                GenericScriptService.GenericScriptService proxySheet = new GenericScriptService.GenericScriptService();
-                proxySheet.Url = WebConfigurationManager.AppSettings["EllService"] + "GenericScriptService";
-                //IMO_BUSCAR_NOTIFICACIONES
-                GenericScriptService.GenericScriptSearchParam genericScriptSearchParam = new GenericScriptService.GenericScriptSearchParam();
-                genericScriptSearchParam.customAttributes = new GenericScriptService.Attribute[]
+
+                int maximo = 100;
+                while (maximo > 0)
                 {
+                    maximo = maximo - 1;
+                    GenericScriptService.GenericScriptService proxySheet = new GenericScriptService.GenericScriptService();
+                    proxySheet.Url = WebConfigurationManager.AppSettings["EllService"] + "GenericScriptService";
+                    //IMO_BUSCAR_NOTIFICACIONES
+                    GenericScriptService.GenericScriptSearchParam genericScriptSearchParam = new GenericScriptService.GenericScriptSearchParam();
+                    genericScriptSearchParam.customAttributes = new GenericScriptService.Attribute[]
+                    {
                     CreateAttribute("scriptName","coeimo"),
                     CreateAttribute("action","IMO_BUSCAR_NOTIFICACIONES"),
                     CreateAttribute("programa",app)
-                };
+                    };
 
-                GenericScriptService.GenericScriptDTO genericScriptDTO = new GenericScriptService.GenericScriptDTO();
-                genericScriptDTO.customAttributes = genericScriptSearchParam.customAttributes;
-                genericScriptDTO.scriptName = "coeimo";
+                    GenericScriptService.GenericScriptDTO genericScriptDTO = new GenericScriptService.GenericScriptDTO();
+                    genericScriptDTO.customAttributes = genericScriptSearchParam.customAttributes;
+                    genericScriptDTO.scriptName = "coeimo";
 
-                JObject jsonMessageNotifcation = null;
+                    JObject jsonMessageNotifcation = null;
 
-                try
-                {
-                    response = sendGeneric(oc, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
-
-                    if (response.data[0].atts[0].name.ToLower().Contains("json"))
+                    try
                     {
-                        jsonMessageNotifcation = JObject.Parse(response.data[0].atts[0].value);
-                        jsonMessageNotifcation["version"].Parent.Remove();
-                        jsonMessageNotifcation["time"].Parent.Remove();
+                        response = sendGeneric(oc, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
+
+                        if (response.data[0].atts[0].name.ToLower().Contains("json"))
+                        {
+                            jsonMessageNotifcation = JObject.Parse(response.data[0].atts[0].value);
+                            jsonMessageNotifcation["version"].Parent.Remove();
+                            jsonMessageNotifcation["time"].Parent.Remove();
+                        }
                     }
-                }
-                catch (Exception)
-                {
-                }
-
-                if (!jsonMessageNotifcation.GetValue("programa").ToString().Equals(""))
-                {
-                    //Enviar notificaciones a Cursor
-                    APIRequest notificationAPI = new APIRequest();
-                    notificationAPI.ContentType = "application/json";
-                    notificationAPI.UrlAPI = WebConfigurationManager.AppSettings["CursorPUSHUrl"];
-                    notificationAPI.Method = "POST";
-                    notificationAPI.AddHeaderParam("X-Secret", WebConfigurationManager.AppSettings["CursorPUSHKey"]);
-                    notificationAPI.BodyParams = jsonMessageNotifcation.ToString();
-                    JObject jsonResponse = notificationAPI.SendRequest();
-
-                    if (!notificationAPI.ErrorFound)
+                    catch (Exception)
                     {
+                        maximo = 0;
+                        //deberiamos dejar un log del error
+                    }
 
-                        //IMO_ACTUALIZAR_NOTIFICACIONES
-                        List<MatrizRiesgos.GenericScriptService.Attribute> listAttribute = new List<GenericScriptService.Attribute>();
-                        listAttribute.Add(CreateAttribute("scriptName", "coeimo"));
-                        listAttribute.Add(CreateAttribute("action", "IMO_ACTUALIZAR_NOTIFICACIONES"));
-                        listAttribute.Add(CreateAttribute("success", jsonResponse.GetValue("success").ToString()));
-                        IEnumerator enumerator = jsonMessageNotifcation.Properties().GetEnumerator();
-                        while (enumerator.MoveNext())
+                    if (!jsonMessageNotifcation.GetValue("programa").ToString().Equals(""))
+                    {
+                        //Enviar notificaciones a Cursor
+                        APIRequest notificationAPI = new APIRequest();
+                        notificationAPI.ContentType = "application/json";
+                        notificationAPI.UrlAPI = WebConfigurationManager.AppSettings["CursorPUSHUrl"];
+                        notificationAPI.Method = "POST";
+                        notificationAPI.AddHeaderParam("X-Secret", WebConfigurationManager.AppSettings["CursorPUSHKey"]);
+                        notificationAPI.BodyParams = jsonMessageNotifcation.ToString();
+                        JObject jsonResponse = notificationAPI.SendRequest();
+
+                        if (!notificationAPI.ErrorFound)
                         {
-                            JProperty item = (JProperty)enumerator.Current;
-                            listAttribute.Add(CreateAttribute(item.Name, item.Value.ToString()));
-                        }
 
-                        genericScriptSearchParam.customAttributes = listAttribute.ToArray();
-                        genericScriptDTO.customAttributes = genericScriptSearchParam.customAttributes;
-                        try
-                        {
-                            response = sendGeneric(oc, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
-
-                            if (response.data[0].atts[0].name.ToLower().Contains("json"))
+                            //IMO_ACTUALIZAR_NOTIFICACIONES
+                            List<MatrizRiesgos.GenericScriptService.Attribute> listAttribute = new List<GenericScriptService.Attribute>();
+                            listAttribute.Add(CreateAttribute("scriptName", "coeimo"));
+                            listAttribute.Add(CreateAttribute("action", "IMO_ACTUALIZAR_NOTIFICACIONES"));
+                            listAttribute.Add(CreateAttribute("success", jsonResponse.GetValue("success").ToString()));
+                            IEnumerator enumerator = jsonMessageNotifcation.Properties().GetEnumerator();
+                            while (enumerator.MoveNext())
                             {
-                                jsonMessageNotifcation = JObject.Parse(response.data[0].atts[0].value);
+                                JProperty item = (JProperty)enumerator.Current;
+                                listAttribute.Add(CreateAttribute(item.Name, item.Value.ToString()));
                             }
-                            jobjectResult = jsonMessageNotifcation;
+
+                            genericScriptSearchParam.customAttributes = listAttribute.ToArray();
+                            genericScriptDTO.customAttributes = genericScriptSearchParam.customAttributes;
+                            try
+                            {
+                                response = sendGeneric(oc, proxySheet, genericScriptSearchParam, genericScriptDTO, credentials);
+
+                                if (response.data[0].atts[0].name.ToLower().Contains("json"))
+                                {
+                                    jsonMessageNotifcation = JObject.Parse(response.data[0].atts[0].value);
+                                }
+                                jobjectResult = jsonMessageNotifcation;
+                            }
+                            catch (Exception ex)
+                            {
+                                messageCode = "400";
+                                messageResponse = ex.Message;
+                                maximo = 0;
+                            }
+
                         }
-                        catch (Exception ex)
+                        else
                         {
                             messageCode = "400";
-                            messageResponse = ex.Message;
+                            messageResponse = notificationAPI.ErrorMessage;
+                            maximo = 0;
                         }
-
                     }
                     else
                     {
-                        messageCode = "400";
-                        messageResponse = notificationAPI.ErrorMessage;
+                        messageCode = "200";
+                        messageResponse = "ITERACION REALIZADA CORRECTAMENNTE";
                     }
                 }
-                else
+
+                if (jobjectResult == null)
                 {
-                    messageCode = "200";
-                    messageResponse = "ITERACION REALIZADA CORRECTAMENNTE";
+                    jobjectResult = JObject.FromObject(new
+                    {
+                        code = messageCode,
+                        menssage = messageResponse
+                    });
                 }
-            } 
 
-            if (jobjectResult == null)
-            {
-                jobjectResult = JObject.FromObject(new
-                {
-                    code = messageCode,
-                    menssage = messageResponse
-                });
             }
+                return jobjectResult;
 
-            return jobjectResult;
+
         }
 
         [AllowAnonymous]

@@ -7,6 +7,7 @@ editando este archivo MSBuild. Para conocer más acerca de esto, visite http://g
   <PropertyGroup>
     <TimeStampOfAssociatedLegacyPublishXmlFile />
     <_PublishTargetUrl>D:\mdr\</_PublishTargetUrl>
+    <History>False|2023-04-24T20:35:18.4138155Z;</History>
   </PropertyGroup>
   <ItemGroup>
     <File Include="ApplicationInsights.config">
