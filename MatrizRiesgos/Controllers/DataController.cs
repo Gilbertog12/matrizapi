@@ -22,7 +22,7 @@ using System.Reflection;
 using System.Net.Http.Headers;
 using System.Collections;
 /* Historia
- * * 2022-07-24 v2.23a Llamar IMO_BUSCAR_NOTIFICACIONES en un loop
+* 2022-07-24 v2.24 Llamar IMO_BUSCAR_NOTIFICACIONES en un loop
 * 2022-07-24 v2.23 Se agregan metodo para notificacion via PUSH.
 * 2022-07-08 v2.22 Se agrega metodo para descargar un log dado el nombre del archivo.
 * 2022-07-08 v2.21 Se agrega metodo para listar los logs dado una fecha.
@@ -75,7 +75,7 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.23a";
+        readonly string versionAPI = "v2.24";
         //private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         Logger log = NLog.LogManager.GetCurrentClassLogger();
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
@@ -118,7 +118,7 @@ namespace MatrizRiesgos.Controllers
 
         [HttpGet]
         [Route("api/log/download")]
-        public HttpResponseMessage GetFile([FromUri]  string fileName)
+        public HttpResponseMessage GetFile([FromUri] string fileName)
         {
             if (String.IsNullOrEmpty(fileName))
                 return Request.CreateResponse(HttpStatusCode.BadRequest);
@@ -600,7 +600,7 @@ namespace MatrizRiesgos.Controllers
             JObject jobjectResult = null;
             string messageResponse = "";
             string messageCode = "";
-            string apps  = WebConfigurationManager.AppSettings["CursorPUSHApp"];
+            string apps = WebConfigurationManager.AppSettings["CursorPUSHApp"];
             Credentials credentials = new Credentials();
             credentials.username = WebConfigurationManager.AppSettings["EllipseUsername"];
             credentials.password = WebConfigurationManager.AppSettings["EllipsePassword"];
@@ -614,7 +614,7 @@ namespace MatrizRiesgos.Controllers
             foreach (string app in apps.Split(','))
             {
 
-                int maximo = 100;
+                int maximo = 3;
                 while (maximo > 0)
                 {
                     maximo = maximo - 1;
@@ -645,6 +645,10 @@ namespace MatrizRiesgos.Controllers
                             jsonMessageNotifcation["version"].Parent.Remove();
                             jsonMessageNotifcation["time"].Parent.Remove();
                         }
+                        else
+                        {
+                            maximo = 0;
+                        }
                     }
                     catch (Exception)
                     {
@@ -663,13 +667,25 @@ namespace MatrizRiesgos.Controllers
                         notificationAPI.BodyParams = jsonMessageNotifcation.ToString();
                         JObject jsonResponse = notificationAPI.SendRequest();
 
+
+
                         if (!notificationAPI.ErrorFound)
                         {
 
-                            //IMO_ACTUALIZAR_NOTIFICACIONES
+                            //IMO_ACTUALIZAR_NOTIFICACIONES                    
+
                             List<MatrizRiesgos.GenericScriptService.Attribute> listAttribute = new List<GenericScriptService.Attribute>();
                             listAttribute.Add(CreateAttribute("scriptName", "coeimo"));
+
+
+
+
                             listAttribute.Add(CreateAttribute("action", "IMO_ACTUALIZAR_NOTIFICACIONES"));
+
+
+
+
+
                             listAttribute.Add(CreateAttribute("success", jsonResponse.GetValue("success").ToString()));
                             IEnumerator enumerator = jsonMessageNotifcation.Properties().GetEnumerator();
                             while (enumerator.MoveNext())
@@ -700,15 +716,18 @@ namespace MatrizRiesgos.Controllers
                         }
                         else
                         {
+
                             messageCode = "400";
                             messageResponse = notificationAPI.ErrorMessage;
                             maximo = 0;
                         }
+
                     }
                     else
                     {
                         messageCode = "200";
                         messageResponse = "ITERACION REALIZADA CORRECTAMENNTE";
+                        maximo = 0;
                     }
                 }
 
@@ -722,7 +741,7 @@ namespace MatrizRiesgos.Controllers
                 }
 
             }
-                return jobjectResult;
+            return jobjectResult;
 
 
         }
@@ -862,7 +881,7 @@ namespace MatrizRiesgos.Controllers
 
                 credentials.runasUsername = userRunedAs.Split('@')[0];
                 credentials.runasPosition = posiRunedAs;
-                
+
             }
 
             genericScriptSearchParam.customAttributes = paramList.ToArray();
@@ -1419,7 +1438,8 @@ namespace MatrizRiesgos.Controllers
                 var bodyStream = new StreamReader(HttpContext.Current.Request.InputStream);
                 bodyStream.BaseStream.Seek(0, SeekOrigin.Begin);
                 bodyText = bodyStream.ReadToEnd();
-            } catch (Exception)
+            }
+            catch (Exception)
             {
 
             }
@@ -1565,24 +1585,24 @@ namespace MatrizRiesgos.Controllers
                 .AllTargets
                 .OfType<FileTarget>()
                 .ToList();
-            
+
             foreach (FileTarget file in files)
             {
                 string relativePath = @file.ArchiveFileName.ToString().Replace("'", "");
-                baseDirectoryFilename = Path.GetFullPath(baseDirectory +  relativePath.Replace("\\\\", "\\"));
+                baseDirectoryFilename = Path.GetFullPath(baseDirectory + relativePath.Replace("\\\\", "\\"));
                 logFilePattern = Path.GetFileName(baseDirectoryFilename);
                 logDirectory = Directory.GetParent(baseDirectoryFilename).FullName;
                 Info("LOG DIRECTORY " + logDirectory);
                 Info("BASEDIRECTORY " + baseDirectory);
-                
+
                 foreach (string fileLog in Directory.GetFiles(logDirectory))
                 {
                     DateTime fileDate = File.GetCreationTime(fileLog);
                     if (
                         (DateTime.Compare(fileDate.Date, filterLogDateFrom.Date) == 1 || DateTime.Compare(fileDate.Date, filterLogDateFrom.Date) == 0) &&
-                        (DateTime.Compare(fileDate.Date, filterLogDateTo.Date) < 0 || DateTime.Compare(fileDate.Date, filterLogDateTo.Date) == 0) 
+                        (DateTime.Compare(fileDate.Date, filterLogDateTo.Date) < 0 || DateTime.Compare(fileDate.Date, filterLogDateTo.Date) == 0)
                        )
-                       
+
                     {
                         Filelog log = new Filelog();
                         log.fullName = fileLog;
