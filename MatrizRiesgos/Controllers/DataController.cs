@@ -75,7 +75,7 @@ namespace MatrizRiesgos.Controllers
 {
     public class DataController : ApiController
     {
-        readonly string versionAPI = "v2.24";
+        readonly string versionAPI = "v2.24.1";
         //private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         Logger log = NLog.LogManager.GetCurrentClassLogger();
         private static readonly string formatDate = "yyyy-MM-dd HH:mm:ss";
@@ -107,6 +107,7 @@ namespace MatrizRiesgos.Controllers
             return json;
         }
 
+        [Authorize]
         [HttpGet]
         [Route("api/log/list")]
         public List<Filelog> getLogFileName([FromUri] string logDateFrom, [FromUri] string logDateTo)
@@ -116,6 +117,7 @@ namespace MatrizRiesgos.Controllers
             return GetFileLogs(filterLogDateFrom, filterLogDateTo);
         }
 
+        [Authorize]
         [HttpGet]
         [Route("api/log/download")]
         public HttpResponseMessage GetFile([FromUri] string fileName)
@@ -193,7 +195,7 @@ namespace MatrizRiesgos.Controllers
                 {
                     att = new GenericScriptService.Attribute();
                     att.name = item.name;
-                    att.value = item.value;
+                    att.value = item.value.Replace("'","");
                     atts.Add(att);
                 }
 
